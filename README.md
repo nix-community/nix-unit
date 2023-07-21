@@ -13,8 +13,8 @@ If your tests follows the structure used by `runTests` adoption of `nix-unit` is
 
 - Allows individual test attributes to fail individually.
 
-Rather than evaluating the entire test suite in one go, serialise & compare `nix-unit` uses the Nix evaluator, meaning it can fail tests individually.
-We can catch individual attributes evaluation failures.
+Rather than evaluating the entire test suite in one go, serialise & compare `nix-unit` uses the Nix evaluator C++ API.
+Meaning that we can catch test failures individually, even if the failure is caused by an evaluation error.
 
 ## Comparison with other tools
 This comparison matrix was originally taken from [Unit test your Nix code](https://www.tweag.io/blog/2022-09-01-unit-test-your-nix-code/) but has been adapted.
