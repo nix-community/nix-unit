@@ -64,7 +64,7 @@ struct MyArgs : MixEvalArgs, MixCommonArgs {
             .longName = "help",
             .description = "show usage information",
             .handler = {[&]() {
-                printf("USAGE: nix-eval-jobs [options] expr\n\n");
+                printf("USAGE: nix-unit [options] expr\n\n");
                 for (const auto &[name, flag] : longFlags) {
                     if (hiddenCategories.count(flag->category)) {
                         continue;
@@ -256,6 +256,8 @@ int main(int argc, char **argv) {
 
         std::cout << "\n" << (results.total == results.success ? "🎉" : "😢") << " " << results.success << "/" << results.total << " successful" << std::endl;
 
-        return results.success == results.total;
+        if (results.success != results.total) {
+            throw EvalError("Tests failed");
+        }
     });
 }

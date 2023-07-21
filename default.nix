@@ -10,8 +10,8 @@ let
     (path: type: type != "directory" || baseNameOf path != "build");
 in
 stdenv.mkDerivation {
-  pname = "nix-eval-jobs";
-  version = "2.16.0";
+  pname = "nix-unit";
+  version = "0.1";
   src = if srcDir == null then filterMesonBuild ./. else srcDir;
   buildInputs = with pkgs; [
     nlohmann_json
@@ -28,10 +28,10 @@ stdenv.mkDerivation {
   ] ++ (lib.optional stdenv.cc.isClang [ pkgs.bear pkgs.clang-tools ]);
 
   meta = {
-    description = "Hydra's builtin hydra-eval-jobs as a standalone";
-    homepage = "https://github.com/nix-community/nix-eval-jobs";
+    description = "Nix unit test runner";
+    homepage = "https://github.com/adisbladis/nix-unit";
     license = lib.licenses.gpl3;
-    maintainers = with lib.maintainers; [ adisbladis mic92 ];
+    maintainers = with lib.maintainers; [ adisbladis ];
     platforms = lib.platforms.unix;
   };
 }

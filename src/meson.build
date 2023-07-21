@@ -1,8 +1,8 @@
 src = [
-  'nix-eval-jobs.cc',
+  'nix-unit.cc',
 ]
 
-executable('nix-eval-jobs', src,
+executable('nix-unit', src,
            dependencies : [
              nix_main_dep,
              nix_store_dep,
