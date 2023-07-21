@@ -112,15 +112,6 @@ struct MyArgs : MixEvalArgs, MixCommonArgs {
                  .description = "include derivation meta field in output",
                  .handler = {&meta, true}});
 
-        addFlag(
-            {.longName = "check-cache-status",
-             .description =
-                 "Check if the derivations are present locally or in "
-                 "any configured substituters (i.e. binary cache). The "
-                 "information "
-                 "will be exposed in the `isCached` field of the JSON output.",
-             .handler = {&checkCacheStatus, true}});
-
         addFlag({.longName = "show-trace",
                  .description =
                      "print out a stack trace in case of evaluation errors",
@@ -176,26 +167,11 @@ static Value *releaseExprTopLevelValue(EvalState &state, Bindings &autoArgs) {
     return vRoot;
 }
 
-bool queryIsCached(Store &store, std::map<std::string, std::string> &outputs) {
-    uint64_t downloadSize, narSize;
-    StorePathSet willBuild, willSubstitute, unknown;
-
-    std::vector<StorePathWithOutputs> paths;
-    for (auto const &[key, val] : outputs) {
-        paths.push_back(followLinksToStorePathWithOutputs(store, val));
-    }
-
-    store.queryMissing(toDerivedPaths(paths), willBuild, willSubstitute,
-                       unknown, downloadSize, narSize);
-    return willBuild.empty() && unknown.empty();
-}
-
 /* The fields of a derivation that are printed in json form */
 struct Drv {
     std::string name;
     std::string system;
     std::string drvPath;
-    bool isCached;
     std::map<std::string, std::string> outputs;
     std::map<std::string, std::set<std::string>> inputDrvs;
     std::optional<nlohmann::json> meta;
@@ -235,9 +211,6 @@ struct Drv {
             }
             meta = meta_;
         }
-        if (myArgs.checkCacheStatus) {
-            isCached = queryIsCached(*localStore, outputs);
-        }
 
         name = drvInfo.queryName();
         system = drvInfo.querySystem();
@@ -259,10 +232,6 @@ static void to_json(nlohmann::json &json, const Drv &drv) {
 
     if (drv.meta.has_value()) {
         json["meta"] = drv.meta.value();
-    }
-
-    if (myArgs.checkCacheStatus) {
-        json["isCached"] = drv.isCached;
     }
 }
 
