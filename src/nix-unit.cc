@@ -214,8 +214,9 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
 
         } catch (const std::exception &e) {
             std::cout << "☢️"
-                      << " " << name << std::endl;
-            printError(e.what());
+                      << " " << name << "\n"
+                      << e.what() << "\n"
+                      << std::endl;
         }
     }
 
