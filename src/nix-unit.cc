@@ -198,6 +198,9 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                 throw EvalError("Missing attrset key 'expr'");
             }
 
+            state->forceValueDeep(*expected->value);
+            state->forceValueDeep(*expr->value);
+
             bool success =
                 state->eqValues(*expr->value, *expected->value, noPos,
                                 "while comparing (expr == expected)");
