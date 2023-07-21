@@ -28,17 +28,17 @@ This comparison matrix was originally taken from [Unit test your Nix code](https
 An expression called `test.nix` containing:
 ``` nix
 {
-  pass = {
+  testPass = {
     expr = 1;
     expected = 1;
   };
 
-  fail = {
-    expr = 1;
-    expected = 0;
+  testFail = {
+    expr = { x = 1; };
+    expected = { y = 1; };
   };
 
-  failEval = {
+  testFailEval = {
     expr = throw "NO U";
     expected = 0;
   };
@@ -47,23 +47,23 @@ An expression called `test.nix` containing:
 
 Results in the output:
 ```
-❌ fail
-1 != 0
+❌ testFail
+{ x = 1; } != { y = 1; }
 
-☢️ failEval
+☢️ testFailEval
 error:
        … while calling the 'throw' builtin
 
-         at .../nix-unit/test.nix:13:12:
+         at /home/adisbladis/nix-eval-jobs/test.nix:13:12:
 
-           12|   failEval = {
+           12|   testFailEval = {
            13|     expr = throw "NO U";
              |            ^
            14|     expected = 0;
 
        error: NO U
 
-✅ pass
+✅ testPass
 
 😢 1/3 successful
 error: Tests failed

@@ -177,6 +177,10 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
     for (auto &i : vRoot->attrs->lexicographicOrder(state->symbols)) {
         const std::string &name = state->symbols[i->name];
 
+        if (name.rfind("test", 0) != 0) {
+            continue;
+        }
+
         results.total++;
 
         try {
