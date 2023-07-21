@@ -45,7 +45,6 @@ struct MyArgs : MixEvalArgs, MixCommonArgs {
     Path gcRootsDir;
     bool flake = false;
     bool fromArgs = false;
-    bool meta = false;
     bool showTrace = false;
     bool impure = false;
     bool forceRecurse = false;
@@ -107,10 +106,6 @@ struct MyArgs : MixEvalArgs, MixCommonArgs {
         addFlag({.longName = "flake",
                  .description = "build a flake",
                  .handler = {&flake, true}});
-
-        addFlag({.longName = "meta",
-                 .description = "include derivation meta field in output",
-                 .handler = {&meta, true}});
 
         addFlag({.longName = "show-trace",
                  .description =
@@ -174,7 +169,6 @@ struct Drv {
     std::string drvPath;
     std::map<std::string, std::string> outputs;
     std::map<std::string, std::set<std::string>> inputDrvs;
-    std::optional<nlohmann::json> meta;
 
     Drv(EvalState &state, DrvInfo &drvInfo) {
         if (drvInfo.querySystem() == "unknown")
@@ -190,26 +184,6 @@ struct Drv {
             }
         } catch (const std::exception &e) {
             throw EvalError("derivation must have valid outputs: %s", e.what());
-        }
-
-        if (myArgs.meta) {
-            nlohmann::json meta_;
-            for (auto &metaName : drvInfo.queryMetaNames()) {
-                NixStringContext context;
-                std::stringstream ss;
-
-                auto metaValue = drvInfo.queryMeta(metaName);
-                // Skip non-serialisable types
-                // TODO: Fix serialisation of derivations to store paths
-                if (metaValue == 0) {
-                    continue;
-                }
-
-                printValueAsJSON(state, true, *metaValue, noPos, ss, context);
-
-                meta_[metaName] = nlohmann::json::parse(ss.str());
-            }
-            meta = meta_;
         }
 
         name = drvInfo.queryName();
@@ -229,10 +203,6 @@ static void to_json(nlohmann::json &json, const Drv &drv) {
                           {"drvPath", drv.drvPath},
                           {"outputs", drv.outputs},
                           {"inputDrvs", drv.inputDrvs}};
-
-    if (drv.meta.has_value()) {
-        json["meta"] = drv.meta.value();
-    }
 }
 
 std::string attrPathJoin(json input) {
