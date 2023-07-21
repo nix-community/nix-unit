@@ -2,6 +2,9 @@
 
 This project runs an attribute set of tests compatible with `lib.debug.runTests` while allowing individual attributes to fail.
 
+![](./.github/demo.gif)
+
+
 ## Why use nix-unit?
 
 - Compatible with `lib.debug.runTests`
