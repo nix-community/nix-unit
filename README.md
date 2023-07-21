@@ -18,10 +18,10 @@ This comparison matrix was originally taken from [Unit test your Nix code](https
 
 | Tool        | Can test eval failures | Tests are defined in Nix | Maintained |
 | ----------- | ---------------------- | ------------------------ | ---------- |
-| Nixt        | no                     | yes                      | yes        |
-| Pythonix    | yes                    | no                       | no         |
-| runTests    | no                     | yes                      | yes        |
 | Nix-unit    | yes                    | yes                      | yes        |
+| runTests    | no                     | yes                      | yes        |
+| Pythonix    | yes                    | no                       | no         |
+| Nixt        | no                     | yes                      | yes        |
 
 ## Example output
 
