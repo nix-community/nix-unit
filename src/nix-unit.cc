@@ -205,7 +205,13 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
 
             if (success) {
                 results.success++;
+            } else {
+                std::cout << printValue(*state, *expr->value)
+                          << " != " << printValue(*state, *expected->value)
+                          << "\n"
+                          << std::endl;
             }
+
         } catch (const std::exception &e) {
             std::cout << "☢️"
                       << " " << name << std::endl;

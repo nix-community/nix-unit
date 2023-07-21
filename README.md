@@ -48,6 +48,8 @@ An expression called `test.nix` containing:
 Results in the output:
 ```
 ❌ fail
+1 != 0
+
 ☢️ failEval
 error:
        … while calling the 'throw' builtin
