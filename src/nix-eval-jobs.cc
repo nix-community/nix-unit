@@ -40,6 +40,7 @@ using namespace nlohmann;
 #elif __clang__
 #pragma clang diagnostic ignored "-Wnon-virtual-dtor"
 #endif
+
 struct MyArgs : MixEvalArgs, MixCommonArgs {
     std::string releaseExpr;
     Path gcRootsDir;
@@ -58,7 +59,7 @@ struct MyArgs : MixEvalArgs, MixCommonArgs {
                                   .useRegistries = false,
                                   .allowUnlocked = false};
 
-    MyArgs() : MixCommonArgs("nix-eval-jobs") {
+    MyArgs() : MixCommonArgs("nix-run-tests") {
         addFlag({
             .longName = "help",
             .description = "show usage information",
@@ -79,29 +80,10 @@ struct MyArgs : MixEvalArgs, MixCommonArgs {
                  .description = "allow impure expressions",
                  .handler = {&impure, true}});
 
-        addFlag(
-            {.longName = "force-recurse",
-             .description = "force recursion (don't respect recurseIntoAttrs)",
-             .handler = {&forceRecurse, true}});
-
         addFlag({.longName = "gc-roots-dir",
                  .description = "garbage collector roots directory",
                  .labels = {"path"},
                  .handler = {&gcRootsDir}});
-
-        addFlag({.longName = "workers",
-                 .description = "number of evaluate workers",
-                 .labels = {"workers"},
-                 .handler = {
-                     [=, this](std::string s) { nrWorkers = std::stoi(s); }}});
-
-        addFlag(
-            {.longName = "max-memory-size",
-             .description =
-                 "maximum evaluation memory size (4GiB per worker by default)",
-             .labels = {"size"},
-             .handler = {
-                 [=, this](std::string s) { maxMemorySize = std::stoi(s); }}});
 
         addFlag({.longName = "flake",
                  .description = "build a flake",
@@ -162,63 +144,12 @@ static Value *releaseExprTopLevelValue(EvalState &state, Bindings &autoArgs) {
     return vRoot;
 }
 
-/* The fields of a derivation that are printed in json form */
-struct Drv {
-    std::string name;
-    std::string system;
-    std::string drvPath;
-    std::map<std::string, std::string> outputs;
-    std::map<std::string, std::set<std::string>> inputDrvs;
-
-    Drv(EvalState &state, DrvInfo &drvInfo) {
-        if (drvInfo.querySystem() == "unknown")
-            throw EvalError("derivation must have a 'system' attribute");
-
-        auto localStore = state.store.dynamic_pointer_cast<LocalFSStore>();
-
-        try {
-            for (auto out : drvInfo.queryOutputs(true)) {
-                if (out.second)
-                    outputs[out.first] =
-                        localStore->printStorePath(*out.second);
-            }
-        } catch (const std::exception &e) {
-            throw EvalError("derivation must have valid outputs: %s", e.what());
-        }
-
-        name = drvInfo.queryName();
-        system = drvInfo.querySystem();
-        drvPath = localStore->printStorePath(drvInfo.requireDrvPath());
-
-        auto drv = localStore->readDerivation(drvInfo.requireDrvPath());
-        for (auto &input : drv.inputDrvs) {
-            inputDrvs[localStore->printStorePath(input.first)] = input.second;
-        }
-    }
+struct TestResults {
+  int total;
+  int success;
 };
 
-static void to_json(nlohmann::json &json, const Drv &drv) {
-    json = nlohmann::json{{"name", drv.name},
-                          {"system", drv.system},
-                          {"drvPath", drv.drvPath},
-                          {"outputs", drv.outputs},
-                          {"inputDrvs", drv.inputDrvs}};
-}
-
-std::string attrPathJoin(json input) {
-    return std::accumulate(input.begin(), input.end(), std::string(),
-                           [](std::string ss, std::string s) {
-                               // Escape token if containing dots
-                               if (s.find(".") != std::string::npos) {
-                                   s = "\"" + s + "\"";
-                               }
-                               return ss.empty() ? s : ss + "." + s;
-                           });
-}
-
-static void worker(ref<EvalState> state, Bindings &autoArgs, AutoCloseFD &to,
-                   AutoCloseFD &from) {
-
+static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
     nix::Value *vRoot = [&]() {
         if (myArgs.flake) {
             auto [flakeRef, fragment, outputSpec] =
@@ -234,246 +165,56 @@ static void worker(ref<EvalState> state, Bindings &autoArgs, AutoCloseFD &to,
         }
     }();
 
-    while (true) {
-        /* Wait for the collector to send us a job name. */
-        writeLine(to.get(), "next");
+    auto expectedNameSym = state->symbols.create("expected");
+    auto exprNameSym = state->symbols.create("expr");
 
-        auto s = readLine(from.get());
-        if (s == "exit")
-            break;
-        if (!hasPrefix(s, "do "))
-            abort();
-        auto path = json::parse(s.substr(3));
-        auto attrPathS = attrPathJoin(path);
-
-        debug("worker process %d at '%s'", getpid(), path);
-
-        /* Evaluate it and send info back to the collector. */
-        json reply = json{{"attr", attrPathS}, {"attrPath", path}};
-        try {
-            auto vTmp =
-                findAlongAttrPath(*state, attrPathS, autoArgs, *vRoot).first;
-
-            auto v = state->allocValue();
-            state->autoCallFunction(autoArgs, *vTmp, *v);
-
-            if (v->type() == nAttrs) {
-                if (auto drvInfo = getDerivation(*state, *v, false)) {
-                    auto drv = Drv(*state, *drvInfo);
-                    reply.update(drv);
-
-                    /* Register the derivation as a GC root.  !!! This
-                       registers roots for jobs that we may have already
-                       done. */
-                    if (myArgs.gcRootsDir != "") {
-                        Path root = myArgs.gcRootsDir + "/" +
-                                    std::string(baseNameOf(drv.drvPath));
-                        if (!pathExists(root)) {
-                            auto localStore =
-                                state->store
-                                    .dynamic_pointer_cast<LocalFSStore>();
-                            auto storePath =
-                                localStore->parseStorePath(drv.drvPath);
-                            localStore->addPermRoot(storePath, root);
-                        }
-                    }
-                } else {
-                    auto attrs = nlohmann::json::array();
-                    bool recurse =
-                        myArgs.forceRecurse ||
-                        path.size() == 0; // Dont require `recurseForDerivations
-                                          // = true;` for top-level attrset
-
-                    for (auto &i :
-                         v->attrs->lexicographicOrder(state->symbols)) {
-                        const std::string &name = state->symbols[i->name];
-                        attrs.push_back(name);
-
-                        if (name == "recurseForDerivations" &&
-                            !myArgs.forceRecurse) {
-                            auto attrv =
-                                v->attrs->get(state->sRecurseForDerivations);
-                            recurse = state->forceBool(
-                                *attrv->value, attrv->pos,
-                                "while evaluating recurseForDerivations");
-                        }
-                    }
-                    if (recurse)
-                        reply["attrs"] = std::move(attrs);
-                    else
-                        reply["attrs"] = nlohmann::json::array();
-                }
-            } else {
-                // We ignore everything that cannot be build
-                reply["attrs"] = nlohmann::json::array();
-            }
-        } catch (EvalError &e) {
-            auto err = e.info();
-            std::ostringstream oss;
-            showErrorInfo(oss, err, loggerSettings.showTrace.get());
-            auto msg = oss.str();
-
-            // Transmits the error we got from the previous evaluation
-            // in the JSON output.
-            reply["error"] = filterANSIEscapes(msg, true);
-            // Don't forget to print it into the STDERR log, this is
-            // what's shown in the Hydra UI.
-            printError(e.msg());
-        }
-
-        writeLine(to.get(), reply.dump());
-
-        /* If our RSS exceeds the maximum, exit. The collector will
-           start a new process. */
-        struct rusage r;
-        getrusage(RUSAGE_SELF, &r);
-        if ((size_t)r.ru_maxrss > myArgs.maxMemorySize * 1024)
-            break;
+    if (vRoot->type() != nAttrs) {
+      throw EvalError("Top level attribute is not an attrset");
     }
 
-    writeLine(to.get(), "restart");
-}
+    TestResults results = {0, 0};
 
-typedef std::function<void(ref<EvalState> state, Bindings &autoArgs,
-                           AutoCloseFD &to, AutoCloseFD &from)>
-    Processor;
+    for (auto &i :vRoot->attrs->lexicographicOrder(state->symbols)) {
+      const std::string &name = state->symbols[i->name];
 
-/* Auto-cleanup of fork's process and fds. */
-struct Proc {
-    AutoCloseFD to, from;
-    Pid pid;
+      results.total++;
 
-    Proc(const Processor &proc) {
-        Pipe toPipe, fromPipe;
-        toPipe.create();
-        fromPipe.create();
-        auto p = startProcess(
-            [&,
-             to{std::make_shared<AutoCloseFD>(std::move(fromPipe.writeSide))},
-             from{
-                 std::make_shared<AutoCloseFD>(std::move(toPipe.readSide))}]() {
-                debug("created worker process %d", getpid());
-                try {
-                    auto state = std::make_shared<EvalState>(
-                        myArgs.searchPath, openStore(*myArgs.evalStoreUrl));
-                    Bindings &autoArgs = *myArgs.getAutoArgs(*state);
-                    proc(ref<EvalState>(state), autoArgs, *to, *from);
-                } catch (Error &e) {
-                    nlohmann::json err;
-                    auto msg = e.msg();
-                    err["error"] = filterANSIEscapes(msg, true);
-                    printError(msg);
-                    writeLine(to->get(), err.dump());
-                    // Don't forget to print it into the STDERR log, this is
-                    // what's shown in the Hydra UI.
-                    writeLine(to->get(), "restart");
-                }
-            },
-            ProcessOptions{.allowVfork = false});
+      try {
+        auto test = i->value;
+        state->forceAttrs(*test, noPos, "while evaluating test");
 
-        to = std::move(toPipe.writeSide);
-        from = std::move(fromPipe.readSide);
-        pid = p;
+        if (test->type() != nAttrs) {
+          std::cout << test->type() << std::endl;
+          throw EvalError("Test is not an attrset");
+        }
+
+        auto expected = test->attrs->get(expectedNameSym);
+        if (!expected) {
+          throw EvalError("Missing attrset key 'expected'");
+        }
+
+        auto expr = test->attrs->get(exprNameSym);
+        if (!expr) {
+          throw EvalError("Missing attrset key 'expr'");
+        }
+
+        bool success = state->eqValues(*expr->value, *expected->value, noPos, "while comparing (expr == expected)");
+        std::cout << (success ? "✅" : "❌") << " " << name << std::endl;
+
+        if (success) {
+          results.success++;
+        }
+      } catch (const std::exception &e) {
+        std::cout << "☢️" << " " << name << std::endl;
+        printError(e.what());
+      }
     }
 
-    ~Proc() {}
-};
-
-struct State {
-    std::set<json> todo = json::array({json::array()});
-    std::set<json> active;
-    std::exception_ptr exc;
-};
-
-std::function<void()> collector(Sync<State> &state_,
-                                std::condition_variable &wakeup) {
-    return [&]() {
-        try {
-            std::optional<std::unique_ptr<Proc>> proc_;
-
-            while (true) {
-
-                auto proc = proc_.has_value() ? std::move(proc_.value())
-                                              : std::make_unique<Proc>(worker);
-
-                /* Check whether the existing worker process is still there. */
-                auto s = readLine(proc->from.get());
-                if (s == "restart") {
-                    proc_ = std::nullopt;
-                    continue;
-                } else if (s != "next") {
-                    auto json = json::parse(s);
-                    throw Error("worker error: %s", (std::string)json["error"]);
-                }
-
-                /* Wait for a job name to become available. */
-                json attrPath;
-
-                while (true) {
-                    checkInterrupt();
-                    auto state(state_.lock());
-                    if ((state->todo.empty() && state->active.empty()) ||
-                        state->exc) {
-                        writeLine(proc->to.get(), "exit");
-                        return;
-                    }
-                    if (!state->todo.empty()) {
-                        attrPath = *state->todo.begin();
-                        state->todo.erase(state->todo.begin());
-                        state->active.insert(attrPath);
-                        break;
-                    } else
-                        state.wait(wakeup);
-                }
-
-                /* Tell the worker to evaluate it. */
-                writeLine(proc->to.get(), "do " + attrPath.dump());
-
-                /* Wait for the response. */
-                auto respString = readLine(proc->from.get());
-                auto response = json::parse(respString);
-
-                /* Handle the response. */
-                std::vector<json> newAttrs;
-                if (response.find("attrs") != response.end()) {
-                    for (auto &i : response["attrs"]) {
-                        json newAttr = json(response["attrPath"]);
-                        newAttr.emplace_back(i);
-                        newAttrs.push_back(newAttr);
-                    }
-                } else {
-                    auto state(state_.lock());
-                    std::cout << respString << "\n" << std::flush;
-                }
-
-                proc_ = std::move(proc);
-
-                /* Add newly discovered job names to the queue. */
-                {
-                    auto state(state_.lock());
-                    state->active.erase(attrPath);
-                    for (auto p : newAttrs) {
-                        state->todo.insert(p);
-                    }
-                    wakeup.notify_all();
-                }
-            }
-        } catch (...) {
-            auto state(state_.lock());
-            state->exc = std::current_exception();
-            wakeup.notify_all();
-        }
-    };
+    return results;
 }
+
 
 int main(int argc, char **argv) {
-    /* Prevent undeclared dependencies in the evaluation via
-       $NIX_PATH. */
-    unsetenv("NIX_PATH");
-
-    /* We are doing the garbage collection by killing forks */
-    setenv("GC_DONT_GC", "1", 1);
-
     return handleExceptions(argv[0], [&]() {
         initNix();
         initGC();
@@ -509,20 +250,12 @@ int main(int argc, char **argv) {
             loggerSettings.showTrace.assign(true);
         }
 
-        Sync<State> state_;
+        auto evalState = std::make_shared<EvalState>(myArgs.searchPath, openStore(*myArgs.evalStoreUrl));
 
-        /* Start a collector thread per worker process. */
-        std::vector<std::thread> threads;
-        std::condition_variable wakeup;
-        for (size_t i = 0; i < myArgs.nrWorkers; i++)
-            threads.emplace_back(std::thread(collector(state_, wakeup)));
+        auto results = runTests(ref<EvalState>(evalState), *myArgs.getAutoArgs(*evalState));
 
-        for (auto &thread : threads)
-            thread.join();
+        std::cout << "\n" << (results.total == results.success ? "🎉" : "😢") << " " << results.success << "/" << results.total << " successful" << std::endl;
 
-        auto state(state_.lock());
-
-        if (state->exc)
-            std::rethrow_exception(state->exc);
+        return results.success == results.total;
     });
 }
