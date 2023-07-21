@@ -6,8 +6,10 @@
   inputs.flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
   inputs.treefmt-nix.url = "github:numtide/treefmt-nix";
   inputs.treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
+  inputs.nix-github-actions.url = "github:nix-community/nix-github-actions";
+  inputs.nix-github-actions.inputs.nixpkgs.follows = "nixpkgs";
 
-  outputs = inputs @ { flake-parts, ... }:
+  outputs = inputs @ { flake-parts, nix-github-actions, ... }:
     let
       inherit (inputs.nixpkgs) lib;
       inherit (inputs) self;
@@ -16,7 +18,15 @@
       {
         systems = inputs.nixpkgs.lib.systems.flakeExposed;
         imports = [ inputs.treefmt-nix.flakeModule ];
-        perSystem = { pkgs, self', system, ... }:
+
+        flake.githubActions = nix-github-actions.lib.mkGithubMatrix {
+          checks = {
+            x86_64-linux = builtins.removeAttrs (self.packages.x86_64-linux // self.checks.x86_64-linux) [ "default" ];
+            x86_64-darwin = builtins.removeAttrs (self.packages.x86_64-darwin // self.checks.x86_64-darwin) [ "default" "treefmt" ];
+          };
+        };
+
+        perSystem = { pkgs, self', ... }:
           let
             inherit (pkgs) stdenv;
             drvArgs = {
@@ -29,7 +39,7 @@
             packages.nix-unit = pkgs.callPackage ./default.nix drvArgs;
             packages.default = self'.packages.nix-unit;
             devShells.default = pkgs.mkShell {
-              inherit (self.packages.${system}.nix-unit) nativeBuildInputs buildInputs;
+              inherit (self'.packages.nix-unit) nativeBuildInputs buildInputs;
               shellHook = lib.optionalString stdenv.isLinux ''
                 export NIX_DEBUG_INFO_DIRS="${pkgs.curl.debug}/lib/debug:${drvArgs.nix.debug}/lib/debug''${NIX_DEBUG_INFO_DIRS:+:$NIX_DEBUG_INFO_DIRS}"
               '';

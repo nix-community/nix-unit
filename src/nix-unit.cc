@@ -145,8 +145,8 @@ static Value *releaseExprTopLevelValue(EvalState &state, Bindings &autoArgs) {
 }
 
 struct TestResults {
-  int total;
-  int success;
+    int total;
+    int success;
 };
 
 static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
@@ -169,50 +169,52 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
     auto exprNameSym = state->symbols.create("expr");
 
     if (vRoot->type() != nAttrs) {
-      throw EvalError("Top level attribute is not an attrset");
+        throw EvalError("Top level attribute is not an attrset");
     }
 
     TestResults results = {0, 0};
 
-    for (auto &i :vRoot->attrs->lexicographicOrder(state->symbols)) {
-      const std::string &name = state->symbols[i->name];
+    for (auto &i : vRoot->attrs->lexicographicOrder(state->symbols)) {
+        const std::string &name = state->symbols[i->name];
 
-      results.total++;
+        results.total++;
 
-      try {
-        auto test = i->value;
-        state->forceAttrs(*test, noPos, "while evaluating test");
+        try {
+            auto test = i->value;
+            state->forceAttrs(*test, noPos, "while evaluating test");
 
-        if (test->type() != nAttrs) {
-          std::cout << test->type() << std::endl;
-          throw EvalError("Test is not an attrset");
+            if (test->type() != nAttrs) {
+                std::cout << test->type() << std::endl;
+                throw EvalError("Test is not an attrset");
+            }
+
+            auto expected = test->attrs->get(expectedNameSym);
+            if (!expected) {
+                throw EvalError("Missing attrset key 'expected'");
+            }
+
+            auto expr = test->attrs->get(exprNameSym);
+            if (!expr) {
+                throw EvalError("Missing attrset key 'expr'");
+            }
+
+            bool success =
+                state->eqValues(*expr->value, *expected->value, noPos,
+                                "while comparing (expr == expected)");
+            std::cout << (success ? "✅" : "❌") << " " << name << std::endl;
+
+            if (success) {
+                results.success++;
+            }
+        } catch (const std::exception &e) {
+            std::cout << "☢️"
+                      << " " << name << std::endl;
+            printError(e.what());
         }
-
-        auto expected = test->attrs->get(expectedNameSym);
-        if (!expected) {
-          throw EvalError("Missing attrset key 'expected'");
-        }
-
-        auto expr = test->attrs->get(exprNameSym);
-        if (!expr) {
-          throw EvalError("Missing attrset key 'expr'");
-        }
-
-        bool success = state->eqValues(*expr->value, *expected->value, noPos, "while comparing (expr == expected)");
-        std::cout << (success ? "✅" : "❌") << " " << name << std::endl;
-
-        if (success) {
-          results.success++;
-        }
-      } catch (const std::exception &e) {
-        std::cout << "☢️" << " " << name << std::endl;
-        printError(e.what());
-      }
     }
 
     return results;
 }
-
 
 int main(int argc, char **argv) {
     return handleExceptions(argv[0], [&]() {
@@ -250,11 +252,16 @@ int main(int argc, char **argv) {
             loggerSettings.showTrace.assign(true);
         }
 
-        auto evalState = std::make_shared<EvalState>(myArgs.searchPath, openStore(*myArgs.evalStoreUrl));
+        auto evalState = std::make_shared<EvalState>(
+            myArgs.searchPath, openStore(*myArgs.evalStoreUrl));
 
-        auto results = runTests(ref<EvalState>(evalState), *myArgs.getAutoArgs(*evalState));
+        auto results = runTests(ref<EvalState>(evalState),
+                                *myArgs.getAutoArgs(*evalState));
 
-        std::cout << "\n" << (results.total == results.success ? "🎉" : "😢") << " " << results.success << "/" << results.total << " successful" << std::endl;
+        std::cout << "\n"
+                  << (results.total == results.success ? "🎉" : "😢") << " "
+                  << results.success << "/" << results.total << " successful"
+                  << std::endl;
 
         if (results.success != results.total) {
             throw EvalError("Tests failed");
