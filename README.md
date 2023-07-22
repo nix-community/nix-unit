@@ -7,29 +7,22 @@ This project runs an attribute set of tests compatible with `lib.debug.runTests`
 
 ## Why use nix-unit?
 
-- Compatible with `lib.debug.runTests`
-
-If your tests follows the structure used by `runTests` adoption of `nix-unit` is easy.
+- Simple structure compatible with `lib.debug.runTests`
 
 - Allows individual test attributes to fail individually.
 
 Rather than evaluating the entire test suite in one go, serialise & compare `nix-unit` uses the Nix evaluator C++ API.
 Meaning that we can catch test failures individually, even if the failure is caused by an evaluation error.
 
-## Comparison with other tools
-This comparison matrix was originally taken from [Unit test your Nix code](https://www.tweag.io/blog/2022-09-01-unit-test-your-nix-code/) but has been adapted.
-Pythonix is excluded as it's unmaintained.
+- Fast.
 
-| Tool        | Can test eval failures | Tests defined in Nix | in nixpkgs | snapshot testing(1) |
-| ----------- | ---------------------- | -------------------- | ---------- |-------------------- |
-| Nix-unit    | yes                    | yes                  | no         | no                  |
-| runTests    | no                     | yes                  | yes        | no                  |
-| Nixt        | no                     | yes                  | no         | no                  |
-| Namaka      | no                     | yes                  | yes        | yes                 |
+No additional processing and coordination overhead caused by the external process approach.
 
-1. [Snapshot testing](https://github.com/nix-community/namaka#snapshot-testing)
+## Examples
 
-## Example output
+## Simple (classic)
+In it's simplest form a `nix-unit` test suite is just an attribute set where test attributes are prefix with `test`.
+Test attribute sets contain the keys `expr`, expressing the test & `expected`, expressing the expected results.
 
 An expression called `test.nix` containing:
 ``` nix
@@ -50,6 +43,10 @@ An expression called `test.nix` containing:
   };
 }
 ```
+
+Evaluated with `nix-unit`:
+`$ nix-unit test.nix`
+
 
 Results in the output:
 ```
@@ -74,3 +71,71 @@ error:
 😢 1/3 successful
 error: Tests failed
 ```
+
+## Simple (flakes)
+
+Building on top of the simple classic example the same type of structure could also be expressed in a `flake.nix`:
+``` nix
+{
+  description = "A very basic flake using nix-unit";
+
+  outputs = { self, nixpkgs }: {
+    libTests = {
+      testPass = {
+        expr = 1;
+        expected = 1;
+      };
+    };
+  };
+}
+
+```
+
+## Test trees
+While simple flat attribute sets works you might want to express your tests as a deep attribute set.
+When `nix-unit` encounters an attribute which name is _not_ prefixed with `test` it recurses into that attribute to find more tests.
+
+Example:
+``` nix
+{
+  testPass = {
+    expr = 1;
+    expected = 1;
+  };
+
+  testFail = {
+    expr = { x = 1; };
+    expected = { y = 1; };
+  };
+
+  testFailEval = {
+    expr = throw "NO U";
+    expected = 0;
+  };
+
+  nested = {
+    testFoo = {
+      expr = "bar";
+      expected = "bar";
+    };
+  };
+}
+```
+
+## FAQ
+
+### What about a watch mode?
+This adds a lot of additional complexity and for now is better dealt with by using external file watcher tools such as [Reflex](https://github.com/cespare/reflex) & [Watchman](https://facebook.github.io/watchman/).
+
+## Comparison with other tools
+This comparison matrix was originally taken from [Unit test your Nix code](https://www.tweag.io/blog/2022-09-01-unit-test-your-nix-code/) but has been adapted.
+Pythonix is excluded as it's unmaintained.
+
+| Tool        | Can test eval failures | Tests defined in Nix | in nixpkgs | snapshot testing(1) |
+| ----------- | ---------------------- | -------------------- | ---------- |-------------------- |
+| Nix-unit    | yes                    | yes                  | no         | no                  |
+| runTests    | no                     | yes                  | yes        | no                  |
+| Nixt        | no                     | yes                  | no         | no                  |
+| Namaka      | no                     | yes                  | yes        | yes                 |
+
+1. [Snapshot testing](https://github.com/nix-community/namaka#snapshot-testing)
