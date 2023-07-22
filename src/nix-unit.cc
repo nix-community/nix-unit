@@ -215,7 +215,8 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
             bool success =
                 state->eqValues(*expr->value, *expected->value, noPos,
                                 "while comparing (expr == expected)");
-            std::cout << (success ? "✅" : "❌") << " " << attr << std::endl;
+            (success ? std::cout : std::cerr)
+                << (success ? "✅" : "❌") << " " << attr << std::endl;
 
             if (success) {
                 results.success++;

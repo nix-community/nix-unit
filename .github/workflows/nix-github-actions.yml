@@ -30,3 +30,14 @@ jobs:
       - uses: actions/checkout@v3
       - uses: cachix/install-nix-action@v22
       - run: nix build -L ".#${{ matrix.attr }}"
+
+  nix-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+      - name: Build shell
+        run: nix develop -c true
+      - name: Test nix-unit
+        run: nix develop -c ./tests/tests.py

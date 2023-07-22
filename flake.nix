@@ -38,12 +38,17 @@
             treefmt.imports = [ ./dev/treefmt.nix ];
             packages.nix-unit = pkgs.callPackage ./default.nix drvArgs;
             packages.default = self'.packages.nix-unit;
-            devShells.default = pkgs.mkShell {
-              inherit (self'.packages.nix-unit) nativeBuildInputs buildInputs;
-              shellHook = lib.optionalString stdenv.isLinux ''
-                export NIX_DEBUG_INFO_DIRS="${pkgs.curl.debug}/lib/debug:${drvArgs.nix.debug}/lib/debug''${NIX_DEBUG_INFO_DIRS:+:$NIX_DEBUG_INFO_DIRS}"
-              '';
-            };
+            devShells.default =
+              let
+                pythonEnv = pkgs.python3.withPackages (_ps: [ ]);
+              in
+              pkgs.mkShell {
+                nativeBuildInputs = self'.packages.nix-unit.nativeBuildInputs ++ [ pythonEnv ];
+                inherit (self'.packages.nix-unit) buildInputs;
+                shellHook = lib.optionalString stdenv.isLinux ''
+                  export NIX_DEBUG_INFO_DIRS="${pkgs.curl.debug}/lib/debug:${drvArgs.nix.debug}/lib/debug''${NIX_DEBUG_INFO_DIRS:+:$NIX_DEBUG_INFO_DIRS}"
+                '';
+              };
           };
       };
 }
