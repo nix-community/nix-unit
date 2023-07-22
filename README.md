@@ -91,6 +91,9 @@ Building on top of the simple classic example the same type of structure could a
 
 ```
 
+And is evaluated with `nix-unit` like so:
+`$ nix-unit --flake .#libTests`
+
 ## Test trees
 While simple flat attribute sets works you might want to express your tests as a deep attribute set.
 When `nix-unit` encounters an attribute which name is _not_ prefixed with `test` it recurses into that attribute to find more tests.
