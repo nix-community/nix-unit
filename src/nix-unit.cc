@@ -41,6 +41,17 @@ using namespace nlohmann;
 #pragma clang diagnostic ignored "-Wnon-virtual-dtor"
 #endif
 
+std::string attrPathJoin(std::vector<std::string> path) {
+    return std::accumulate(path.begin(), path.end(), std::string(),
+                           [](std::string ss, std::string s) {
+                               // Escape token if containing dots
+                               if (s.find(".") != std::string::npos) {
+                                   s = "\"" + s + "\"";
+                               }
+                               return ss.empty() ? s : ss + "." + s;
+                           });
+}
+
 struct MyArgs : MixEvalArgs, MixCommonArgs {
     std::string releaseExpr;
     Path gcRootsDir;
@@ -165,8 +176,8 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
         }
     }();
 
-    auto expectedNameSym = state->symbols.create("expected");
-    auto exprNameSym = state->symbols.create("expr");
+    const auto expectedNameSym = state->symbols.create("expected");
+    const auto exprNameSym = state->symbols.create("expr");
 
     if (vRoot->type() != nAttrs) {
         throw EvalError("Top level attribute is not an attrset");
@@ -174,21 +185,17 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
 
     TestResults results = {0, 0};
 
-    for (auto &i : vRoot->attrs->lexicographicOrder(state->symbols)) {
-        const std::string &name = state->symbols[i->name];
-
-        if (name.rfind("test", 0) != 0) {
-            continue;
-        }
-
+    // Run a single test from attrset
+    const auto runTest = [&](std::vector<std::string> attrPath,
+                             nix::Value *test) {
         results.total++;
 
+        std::string attr = attrPathJoin(attrPath);
+
         try {
-            auto test = i->value;
             state->forceAttrs(*test, noPos, "while evaluating test");
 
             if (test->type() != nAttrs) {
-                std::cout << test->type() << std::endl;
                 throw EvalError("Test is not an attrset");
             }
 
@@ -208,24 +215,54 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
             bool success =
                 state->eqValues(*expr->value, *expected->value, noPos,
                                 "while comparing (expr == expected)");
-            std::cout << (success ? "✅" : "❌") << " " << name << std::endl;
+            std::cout << (success ? "✅" : "❌") << " " << attr << std::endl;
 
             if (success) {
                 results.success++;
             } else {
-                std::cout << printValue(*state, *expr->value)
+                std::cerr << printValue(*state, *expr->value)
                           << " != " << printValue(*state, *expected->value)
                           << "\n"
                           << std::endl;
             }
 
         } catch (const std::exception &e) {
-            std::cout << "☢️"
-                      << " " << name << "\n"
+            std::cerr << "☢️"
+                      << " " << attr << "\n"
                       << e.what() << "\n"
                       << std::endl;
         }
-    }
+    };
+
+    // Recurse into test attrset
+    std::function<void(std::vector<std::string>, nix::Value *)> recurseTests;
+    recurseTests = [&](std::vector<std::string> attrPath,
+                       nix::Value *testAttrs) -> void {
+        for (auto &i : testAttrs->attrs->lexicographicOrder(state->symbols)) {
+            const std::string &name = state->symbols[i->name];
+
+            // Copy and append current attribute
+            std::vector<std::string> curAttrPath = attrPath;
+            curAttrPath.push_back(name);
+
+            // Value is a name prefixed by test run test
+            if (name.rfind("test", 0) == 0) {
+                runTest(curAttrPath, i->value);
+                continue;
+            }
+
+            // If value is an attrset recurse further into tree
+            {
+                nix::Value *value = i->value;
+                state->forceValue(*value, noPos);
+                if (value->type() == nAttrs) {
+                    recurseTests(curAttrPath, value);
+                }
+            }
+        }
+    };
+
+    recurseTests(std::vector<std::string>({}), vRoot);
 
     return results;
 }
@@ -272,12 +309,15 @@ int main(int argc, char **argv) {
         auto results = runTests(ref<EvalState>(evalState),
                                 *myArgs.getAutoArgs(*evalState));
 
-        std::cout << "\n"
-                  << (results.total == results.success ? "🎉" : "😢") << " "
-                  << results.success << "/" << results.total << " successful"
-                  << std::endl;
+        bool success = results.success == results.total;
 
-        if (results.success != results.total) {
+        (success ? std::cout : std::cerr)
+            << "\n"
+            << (results.total == results.success ? "🎉" : "😢") << " "
+            << results.success << "/" << results.total << " successful"
+            << std::endl;
+
+        if (!success) {
             throw EvalError("Tests failed");
         }
     });
