@@ -56,6 +56,7 @@ struct MyArgs : MixEvalArgs, MixCommonArgs {
     std::string releaseExpr;
     Path gcRootsDir;
     bool flake = false;
+    bool quiet = false;
     bool fromArgs = false;
     bool showTrace = false;
     bool impure = false;
@@ -70,7 +71,7 @@ struct MyArgs : MixEvalArgs, MixCommonArgs {
                                   .useRegistries = false,
                                   .allowUnlocked = false};
 
-    MyArgs() : MixCommonArgs("nix-run-tests") {
+    MyArgs() : MixCommonArgs("nix-unit") {
         addFlag({
             .longName = "help",
             .description = "show usage information",
@@ -99,6 +100,10 @@ struct MyArgs : MixEvalArgs, MixCommonArgs {
         addFlag({.longName = "flake",
                  .description = "build a flake",
                  .handler = {&flake, true}});
+
+        addFlag({.longName = "quiet",
+                 .description = "only output results from failing tests",
+                 .handler = {&quiet, true}});
 
         addFlag({.longName = "show-trace",
                  .description =
@@ -215,8 +220,11 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
             bool success =
                 state->eqValues(*expr->value, *expected->value, noPos,
                                 "while comparing (expr == expected)");
-            (success ? std::cout : std::cerr)
-                << (success ? "✅" : "❌") << " " << attr << std::endl;
+
+            if (!myArgs.quiet || !success) {
+                (success ? std::cout : std::cerr)
+                    << (success ? "✅" : "❌") << " " << attr << std::endl;
+            }
 
             if (success) {
                 results.success++;
