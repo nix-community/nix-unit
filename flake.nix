@@ -43,7 +43,10 @@
                 pythonEnv = pkgs.python3.withPackages (_ps: [ ]);
               in
               pkgs.mkShell {
-                nativeBuildInputs = self'.packages.nix-unit.nativeBuildInputs ++ [ pythonEnv ];
+                nativeBuildInputs = self'.packages.nix-unit.nativeBuildInputs ++ [
+                  pythonEnv
+                  pkgs.difftastic
+                ];
                 inherit (self'.packages.nix-unit) buildInputs;
                 shellHook = lib.optionalString stdenv.isLinux ''
                   export NIX_DEBUG_INFO_DIRS="${pkgs.curl.debug}/lib/debug:${drvArgs.nix.debug}/lib/debug''${NIX_DEBUG_INFO_DIRS:+:$NIX_DEBUG_INFO_DIRS}"

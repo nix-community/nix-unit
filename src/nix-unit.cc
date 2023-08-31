@@ -186,6 +186,29 @@ static Value *releaseExprTopLevelValue(EvalState &state, Bindings &autoArgs) {
     return vRoot;
 }
 
+void runDiffTool(std::string diffTool, std::string_view actual,
+                 std::string_view expected) {
+    AutoDelete tmpDir(createTempDir(), true);
+    Path actualPath = (Path)tmpDir + "/actual.nix";
+    Path expectedPath = (Path)tmpDir + "/expected.nix";
+
+    writeFile(actualPath, actual);
+    writeFile(expectedPath, expected);
+
+    auto res = runProgram(RunOptions{
+        .program = "/bin/sh",
+        .searchPath = true,
+        .args = {"-c", diffTool + " " + actualPath + " " + expectedPath},
+    });
+    if (!(WIFEXITED(res.first) &&
+          (WEXITSTATUS(res.first) == 0 || WEXITSTATUS(res.first) == 1))) {
+        throw ExecError(res.first, "program '%1%' %2%", diffTool,
+                        statusToString(res.first));
+    }
+
+    std::cerr << res.second << std::endl;
+}
+
 struct TestResults {
     int total;
     int success;
@@ -257,10 +280,8 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                 if (success) {
                     results.success++;
                 } else {
-                    std::cerr << printValue(*state, *expr->value)
-                              << " != " << printValue(*state, *expected->value)
-                              << "\n"
-                              << std::endl;
+                  runDiffTool("difft", printValue(*state, *expr->value),
+                              printValue(*state, *expected->value));
                 }
 
             } else if (expectedError) {
@@ -350,7 +371,6 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
             if (success) {
                 results.success++;
             }
-
         } catch (const std::exception &e) {
             std::cerr << "☢️"
                       << " " << attr << "\n"
