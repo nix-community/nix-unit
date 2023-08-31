@@ -20,4 +20,26 @@
       expected = "bar";
     };
   };
+
+  testCatchThrow = {
+    expr = throw "I give up";
+    expectedError.type = "ThrownError";
+  };
+
+  testCatchAbort = {
+    expr = abort "Just no";
+    expectedError.type = "Abort";
+  };
+
+  testCatchMessage = {
+    expr = throw "Still about 100 errors to go";
+    expectedError.type = "ThrownError";
+    expectedError.msg = "\\d+ errors";
+  };
+
+  testCatchWrongMessage = {
+    expr = throw "I give up";
+    expectedError.type = "ThrownError";
+    expectedError.msg = "\\d+ errors";
+  };
 }

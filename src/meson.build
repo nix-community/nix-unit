@@ -2,6 +2,7 @@ src = [
   'nix-unit.cc',
 ]
 
+
 executable('nix-unit', src,
            dependencies : [
              nix_main_dep,
