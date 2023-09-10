@@ -198,7 +198,7 @@ void runDiffTool(std::string diffTool, std::string_view actual,
     auto res = runProgram(RunOptions{
         .program = "/bin/sh",
         .searchPath = true,
-        .args = {"-c", diffTool + " " + actualPath + " " + expectedPath},
+        .args = {"-c", diffTool + " --color always " + actualPath + " " + expectedPath},
     });
     if (!(WIFEXITED(res.first) &&
           (WEXITSTATUS(res.first) == 0 || WEXITSTATUS(res.first) == 1))) {
