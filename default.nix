@@ -31,7 +31,7 @@ stdenv.mkDerivation {
   ] ++ (lib.optional stdenv.cc.isClang [ pkgs.bear pkgs.clang-tools ]);
 
   postInstall = ''
-    wrapProgram "$out/bin/nix-unit" --prefix PATH : ${lib.getExe difftastic}
+    wrapProgram "$out/bin/nix-unit" --prefix PATH : ${difftastic}/bin
   '';
 
   meta = {
