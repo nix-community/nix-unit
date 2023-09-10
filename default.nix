@@ -3,6 +3,8 @@
 , nix
 , pkgs
 , srcDir ? null
+, makeWrapper
+, difftastic
 }:
 
 let
@@ -19,6 +21,7 @@ stdenv.mkDerivation {
     boost
   ];
   nativeBuildInputs = with pkgs; [
+    makeWrapper
     bear
     meson
     pkg-config
@@ -27,11 +30,16 @@ stdenv.mkDerivation {
     cmake
   ] ++ (lib.optional stdenv.cc.isClang [ pkgs.bear pkgs.clang-tools ]);
 
+  postInstall = ''
+    wrapProgram "$out/bin/nix-unit" --prefix PATH : ${difftastic}/bin
+  '';
+
   meta = {
     description = "Nix unit test runner";
     homepage = "https://github.com/adisbladis/nix-unit";
     license = lib.licenses.gpl3;
     maintainers = with lib.maintainers; [ adisbladis ];
     platforms = lib.platforms.unix;
+    mainProgram = "nix-unit";
   };
 }
