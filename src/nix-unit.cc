@@ -198,7 +198,8 @@ void runDiffTool(std::string diffTool, std::string_view actual,
     auto res = runProgram(RunOptions{
         .program = "/bin/sh",
         .searchPath = true,
-        .args = {"-c", diffTool + " --color always " + actualPath + " " + expectedPath},
+        .args = {"-c", diffTool + " --color always " + actualPath + " " +
+                           expectedPath},
     });
     if (!(WIFEXITED(res.first) &&
           (WEXITSTATUS(res.first) == 0 || WEXITSTATUS(res.first) == 1))) {
@@ -280,8 +281,8 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                 if (success) {
                     results.success++;
                 } else {
-                  runDiffTool("difft", printValue(*state, *expr->value),
-                              printValue(*state, *expected->value));
+                    runDiffTool("difft", printValue(*state, *expr->value),
+                                printValue(*state, *expected->value));
                 }
 
             } else if (expectedError) {
