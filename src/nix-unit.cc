@@ -2,6 +2,7 @@
 #include <iostream>
 #include <thread>
 #include <filesystem>
+#include <regex>
 
 #include <nix/config.h>
 #include <nix/shared.hh>
@@ -50,6 +51,31 @@ std::string attrPathJoin(std::vector<std::string> path) {
                                }
                                return ss.empty() ? s : ss + "." + s;
                            });
+}
+
+// Errors as defined src/libexpr/nixexpr.hh, ordered by specifity, descending
+static std::string errorToString(nix::Error *error) {
+    if (nullptr != dynamic_cast<nix::RestrictedPathError *>(error)) {
+        return std::string("RestrictedPathError");
+    } else if (nullptr != dynamic_cast<nix::MissingArgumentError *>(error)) {
+        return std::string("MissingArgumentError");
+    } else if (nullptr != dynamic_cast<nix::UndefinedVarError *>(error)) {
+        return std::string("UndefinedVarError");
+    } else if (nullptr != dynamic_cast<nix::TypeError *>(error)) {
+        return std::string("TypeError");
+    } else if (nullptr != dynamic_cast<nix::Abort *>(error)) {
+        return std::string("Abort");
+    } else if (nullptr != dynamic_cast<nix::ThrownError *>(error)) {
+        return std::string("ThrownError");
+    } else if (nullptr != dynamic_cast<nix::AssertionError *>(error)) {
+        return std::string("AssertionError");
+    } else if (nullptr != dynamic_cast<nix::ParseError *>(error)) {
+        return std::string("ParseError");
+    } else if (nullptr != dynamic_cast<nix::EvalError *>(error)) {
+        return std::string("EvalError");
+    } else {
+        return std::string("Error");
+    }
 }
 
 struct MyArgs : MixEvalArgs, MixCommonArgs {
@@ -181,8 +207,11 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
         }
     }();
 
+    const auto expectedErrorNameSym = state->symbols.create("expectedError");
     const auto expectedNameSym = state->symbols.create("expected");
     const auto exprNameSym = state->symbols.create("expr");
+    const auto typeNameSym = state->symbols.create("type");
+    const auto msgNameSym = state->symbols.create("msg");
 
     if (vRoot->type() != nAttrs) {
         throw EvalError("Top level attribute is not an attrset");
@@ -204,35 +233,122 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                 throw EvalError("Test is not an attrset");
             }
 
-            auto expected = test->attrs->get(expectedNameSym);
-            if (!expected) {
-                throw EvalError("Missing attrset key 'expected'");
-            }
-
             auto expr = test->attrs->get(exprNameSym);
             if (!expr) {
                 throw EvalError("Missing attrset key 'expr'");
             }
 
-            state->forceValueDeep(*expected->value);
-            state->forceValueDeep(*expr->value);
+            auto expectedError = test->attrs->get(expectedErrorNameSym);
+            auto expected = test->attrs->get(expectedNameSym);
 
-            bool success =
-                state->eqValues(*expr->value, *expected->value, noPos,
-                                "while comparing (expr == expected)");
+            bool success = false;
 
-            if (!myArgs.quiet || !success) {
-                (success ? std::cout : std::cerr)
-                    << (success ? "✅" : "❌") << " " << attr << std::endl;
+            if (expected) {
+                state->forceValueDeep(*expr->value);
+                state->forceValueDeep(*expected->value);
+                success = state->eqValues(*expr->value, *expected->value, noPos,
+                                          "while comparing (expr == expected)");
+
+                if (!myArgs.quiet || !success) {
+                    (success ? std::cout : std::cerr)
+                        << (success ? "✅" : "❌") << " " << attr << std::endl;
+                }
+
+                if (success) {
+                    results.success++;
+                } else {
+                    std::cerr << printValue(*state, *expr->value)
+                              << " != " << printValue(*state, *expected->value)
+                              << "\n"
+                              << std::endl;
+                }
+
+            } else if (expectedError) {
+                state->forceAttrs(*expectedError->value, noPos,
+                                  "while evaluating expectedError");
+
+                // Get expectedError.type
+                std::string expectedErrorType;
+                auto expectedErrorTypeAttr =
+                    expectedError->value->attrs->get(typeNameSym);
+                if (expectedErrorTypeAttr) {
+                    expectedErrorType = state->forceStringNoCtx(
+                        *expectedErrorTypeAttr->value, noPos,
+                        "while reading \"type\"");
+                }
+
+                // Get expectedError.msg
+                std::string expectedErrorMsg;
+                auto expectedErrorMsgAttr =
+                    expectedError->value->attrs->get(msgNameSym);
+                if (expectedErrorMsgAttr) {
+                    expectedErrorMsg =
+                        state->forceStringNoCtx(*expectedErrorMsgAttr->value,
+                                                noPos, "while reading \"msg\"");
+                }
+
+                if (expectedErrorType.empty() && expectedErrorMsg.empty()) {
+                    throw new EvalError("Missing both 'expectedError.msg' & "
+                                        "'expectedError.type'");
+                }
+
+                bool caught = false;
+
+                try {
+                    state->forceValueDeep(*expr->value);
+                } catch (nix::Error &e) {
+                    caught = true;
+
+                    success = true;
+
+                    if (!expectedErrorType.empty()) {
+                        auto thrownErrorType = errorToString(&e);
+
+                        if (thrownErrorType != expectedErrorType) {
+                            success = false;
+                            std::cerr << "❌ " << attr
+                                      << "\nExpected error type '"
+                                      << expectedErrorType << "', while '"
+                                      << thrownErrorType << "' was thrown\n"
+                                      << std::endl;
+                        }
+                    }
+
+                    if (success && !expectedErrorMsg.empty()) {
+                        auto thrownErrorMsg = e.msg();
+
+                        auto pattern = std::regex(expectedErrorMsg);
+                        std::cmatch m;
+                        if (!std::regex_search(thrownErrorMsg.c_str(), m,
+                                               pattern)) {
+                            success = false;
+                            std::cerr << "❌ " << attr
+                                      << "\nExpected error msg pattern '"
+                                      << expectedErrorMsg
+                                      << "' does not match '" << thrownErrorMsg
+                                      << "' was thrown\n"
+                                      << std::endl;
+                        }
+                    }
+                }
+
+                if (!caught) {
+                    throw new EvalError(
+                        "Expected error, but no error was caught");
+                }
+
+                if (success) {
+                    std::cout << "✅"
+                              << " " << attr << std::endl;
+                }
+
+            } else {
+                throw EvalError(
+                    "Missing attrset keys 'expected' or 'expectedError'");
             }
 
             if (success) {
                 results.success++;
-            } else {
-                std::cerr << printValue(*state, *expr->value)
-                          << " != " << printValue(*state, *expected->value)
-                          << "\n"
-                          << std::endl;
             }
 
         } catch (const std::exception &e) {

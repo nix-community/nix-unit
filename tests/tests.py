@@ -80,6 +80,8 @@ def run_suite(name: str, expected: Dict[str, TestResult], flake: bool):
     get_output_structured(proc.stderr.decode(), results)
 
     for test, expected_result in expected.items():
+        # from pprint import pprint
+        # pprint(results)
         result = results[test]
         if results[test] != expected_result:
             raise ValueError(f"{result} != {expected_result}")
@@ -95,6 +97,13 @@ suites = {
         TestResult("testPass", success=True),
         TestResult("testFail", fail=True),
         TestResult("testFailEval", eval_fail=True),
+        TestResult("testCatchThrow", success=True),
+        TestResult("testCatchAbort", success=True),
+        TestResult("testCatchMessage", success=True),
+        TestResult("testCatchThrow", success=True),
+        TestResult("testCatchAbort", success=True),
+        TestResult("testCatchMessage", success=True),
+        TestResult("testCatchWrongMessage", fail=True),
     ),
 }
 
