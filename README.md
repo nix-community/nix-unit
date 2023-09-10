@@ -125,6 +125,33 @@ Example:
 }
 ```
 
+## Test errors
+
+While testing the happy path is a good start, you might also want to verify that expressions throw the error you expect. You check for a specifc type of error by setting `expectedError.type` and/or use `expectedError.msg` to search its message for the given regex.
+
+Example:
+
+``` nix
+  testCatchWrongMessage = {
+    expr = throw "I give up";
+    expectedError.type = "ThrownError";
+    expectedError.msg = "\\d+ errors";
+```
+
+### Supported error types
+
+The following values for `expectedError.type` are valid:
+
+* `RestrictedPathError`
+* `MissingArgumentError`
+* `UndefinedVarError`
+* `TypeError`
+* `Abort`
+* `ThrownError`
+* `AssertionError`
+* `ParseError`
+* `EvalError`
+
 ## FAQ
 
 ### What about a watch mode?
