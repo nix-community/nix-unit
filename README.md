@@ -131,12 +131,25 @@ While testing the happy path is a good start, you might also want to verify that
 
 Example:
 
+`tests/default.nix`
 ``` nix
-  testCatchWrongMessage = {
-    expr = throw "I give up";
+{
+  testCatchMessage = {
+    expr = throw "10 instead of 5";
     expectedError.type = "ThrownError";
-    expectedError.msg = "\\d+ errors";
+    expectedError.msg = "\\d+ instead of 5";
+  };
+}
 ```
+->
+```
+✅ testCatchMessage
+
+🎉 1/1 successful
+```
+
+
+> Note: Regular expression like the one above are supported
 
 ### Supported error types
 
