@@ -14,4 +14,4 @@ executable('nix-unit', src,
              threads_dep
            ],
            install: true,
-           cpp_args: ['-std=c++2a', '-fvisibility=hidden'])
+           cpp_args: ['-std=c++2a'])
