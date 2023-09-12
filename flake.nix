@@ -8,6 +8,7 @@
   inputs.treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
   inputs.nix-github-actions.url = "github:nix-community/nix-github-actions";
   inputs.nix-github-actions.inputs.nixpkgs.follows = "nixpkgs";
+  inputs.nix.url = "github:NixOS/nix/master";
 
   outputs = inputs @ { flake-parts, nix-github-actions, ... }:
     let
@@ -26,12 +27,12 @@
           };
         };
 
-        perSystem = { pkgs, self', ... }:
+        perSystem = { pkgs, self', inputs', ... }:
           let
             inherit (pkgs) stdenv;
             drvArgs = {
               srcDir = self;
-              nix = pkgs.nixUnstable;
+              nix = inputs'.nix.packages.nix;
             };
           in
           {

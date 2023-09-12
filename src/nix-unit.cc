@@ -246,8 +246,8 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
     // Run a single test from attrset
     const auto runTest = [&](std::vector<std::string> attrPath,
                              nix::Value *test) {
-        results.total++;
 
+            results.total++;
         std::string attr = attrPathJoin(attrPath);
 
         try {
@@ -278,12 +278,10 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                         << (success ? "✅" : "❌") << " " << attr << std::endl;
                 }
 
-                if (success) {
-                    results.success++;
-                } else {
+                if (!success)
                     runDiffTool("difft", printValue(*state, *expr->value),
                                 printValue(*state, *expected->value));
-                }
+                
 
             } else if (expectedError) {
                 state->forceAttrs(*expectedError->value, noPos,
@@ -368,7 +366,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                 throw EvalError(
                     "Missing attrset keys 'expected' or 'expectedError'");
             }
-
+            
             if (success) {
                 results.success++;
             }
@@ -426,15 +424,16 @@ int main(int argc, char **argv) {
 
         /* Prevent access to paths outside of the Nix search path and
            to the environment. */
-        evalSettings.restrictEval = false;
+        // evalSettings.restrictEval = false;
 
         /* When building a flake, use pure evaluation (no access to
            'getEnv', 'currentSystem' etc. */
-        if (myArgs.impure) {
-            evalSettings.pureEval = false;
-        } else if (myArgs.flake) {
-            evalSettings.pureEval = true;
-        }
+        
+        // if (myArgs.impure) {
+        //     evalSettings.pureEval = false;
+        // } else if (myArgs.flake) {
+        //     evalSettings.pureEval = true;
+        // }
 
         if (myArgs.releaseExpr == "")
             throw UsageError("no expression specified");
