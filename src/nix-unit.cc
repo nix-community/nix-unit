@@ -278,9 +278,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                         << (success ? "✅" : "❌") << " " << attr << std::endl;
                 }
 
-                if (success) {
-                    results.success++;
-                } else {
+                if (!success) {
                     runDiffTool("difft", printValue(*state, *expr->value),
                                 printValue(*state, *expected->value));
                 }
