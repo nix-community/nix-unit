@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <regex>
 
+#include <nix/eval-settings.hh>
 #include <nix/config.h>
 #include <nix/shared.hh>
 #include <nix/store-api.hh>
