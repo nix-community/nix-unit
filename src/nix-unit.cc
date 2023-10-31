@@ -216,6 +216,12 @@ struct TestResults {
     int success;
 };
 
+std::string printValueWithRepated(const EvalState &state, const Value &v) {
+    std::ostringstream out;
+    v.print(state.symbols, out, true);
+    return out.str();
+}
+
 static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
     nix::Value *vRoot = [&]() {
         if (myArgs.flake) {
@@ -280,8 +286,9 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                 }
 
                 if (!success) {
-                    runDiffTool("difft", printValue(*state, *expr->value),
-                                printValue(*state, *expected->value));
+                    runDiffTool(
+                        "difft", printValueWithRepated(*state, *expr->value),
+                        printValueWithRepated(*state, *expected->value));
                 }
 
             } else if (expectedError) {
