@@ -1,10 +1,16 @@
 { stdenv
 , lib
-, nix
-, pkgs
 , srcDir ? null
-, makeWrapper
+, boost
+, clang-tools
+, cmake
 , difftastic
+, makeWrapper
+, meson
+, ninja
+, nix
+, nlohmann_json
+, pkg-config
 }:
 
 let
@@ -15,19 +21,19 @@ stdenv.mkDerivation {
   pname = "nix-unit";
   version = "0.1";
   src = if srcDir == null then filterMesonBuild ./. else srcDir;
-  buildInputs = with pkgs; [
+  buildInputs = [
     nlohmann_json
     nix
     boost
   ];
-  nativeBuildInputs = with pkgs; [
+  nativeBuildInputs = [
     makeWrapper
     meson
     pkg-config
     ninja
     # nlohmann_json can be only discovered via cmake files
     cmake
-  ] ++ (lib.optional stdenv.cc.isClang [ pkgs.clang-tools ]);
+  ] ++ (lib.optional stdenv.cc.isClang [ clang-tools ]);
 
   postInstall = ''
     wrapProgram "$out/bin/nix-unit" --prefix PATH : ${difftastic}/bin
