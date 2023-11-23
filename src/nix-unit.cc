@@ -365,7 +365,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                         "Expected error, but no error was caught");
                 }
 
-                if (success) {
+                if (!myArgs.quiet && success) {
                     std::cout << "✅"
                               << " " << attr << std::endl;
                 }
