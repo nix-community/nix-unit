@@ -188,3 +188,7 @@ Pythonix is excluded as it's unmaintained.
 | Namaka      | no                     | yes                  | yes        | yes                 |
 
 1. [Snapshot testing](https://github.com/nix-community/namaka#snapshot-testing)
+
+## Versioning
+
+Major and minor version are the same as the nix version it was tested with i.e. nix-unit 2.18 will target nix 2.18.x.
