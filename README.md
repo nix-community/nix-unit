@@ -172,7 +172,7 @@ This adds a lot of additional complexity and for now is better dealt with by usi
 
 ### Can I change the colors?
 
-`nix-unit` uses [difftastic](github.com/wilfred/difftastic), which can be configured via environment variables. You can turn off
+`nix-unit` uses [difftastic](https://github.com/wilfred/difftastic), which can be configured via environment variables. You can turn off
 colors via `DFT_COLOR=never`, give difftastic a hint for choosing better colors with `DFT_BACKGROUND=light` or see the full
 list of options via e.g. `nix run nixpkgs#difftastic -- --help`.
 
