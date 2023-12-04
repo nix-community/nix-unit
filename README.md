@@ -182,7 +182,7 @@ Pythonix is excluded as it's unmaintained.
 
 | Tool        | Can test eval failures | Tests defined in Nix | in nixpkgs | snapshot testing(1) |
 | ----------- | ---------------------- | -------------------- | ---------- |-------------------- |
-| Nix-unit    | yes                    | yes                  | no         | no                  |
+| Nix-unit    | yes                    | yes                  | yes        | no                  |
 | runTests    | no                     | yes                  | yes        | no                  |
 | Nixt        | no                     | yes                  | no         | no                  |
 | Namaka      | no                     | yes                  | yes        | yes                 |
