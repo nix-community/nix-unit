@@ -11,6 +11,8 @@
 
 # Nix Reference documentation
 
+- [Coverage](./lib/coverage.nix)
+
 # Contributing
 
 - [Hacking](./HACKING.md)

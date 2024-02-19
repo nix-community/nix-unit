@@ -59,6 +59,8 @@
                   pkgs.difftastic
                   pkgs.nixdoc
                   pkgs.mdbook
+                  pkgs.mdbook-open-on-gh
+                  inputs.mdbook-nixdoc.packages.${system}.default
                 ];
                 inherit (self'.packages.nix-unit) buildInputs;
                 shellHook = lib.optionalString stdenv.isLinux ''
