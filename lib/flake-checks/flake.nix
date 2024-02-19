@@ -2,6 +2,8 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
+    nix-unit.url = "github:nix-community/nix-unit";
+    nix-unit.inputs.nixpkgs.follows = "nixpkgs";
   };
   outputs = inputs: inputs.flake-utils.lib.eachDefaultSystem (system:
     let
@@ -15,7 +17,7 @@
         phases = [ "unpackPhase" "buildPhase" ];
         src = inputs.self;
         buildPhase = ''
-          ${pkgs.lib.getExe pkgs.nix-unit} \
+          ${pkgs.lib.getExe inputs.nix-unit.packages.${system}.default} \
             --eval-store $(realpath .) \
             --flake \
             --option extra-experimental-features flakes \
