@@ -1,13 +1,20 @@
 {
   description = "Nix unit test runner";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/master";
-  inputs.flake-parts.url = "github:hercules-ci/flake-parts";
-  inputs.flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
-  inputs.treefmt-nix.url = "github:numtide/treefmt-nix";
-  inputs.treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
-  inputs.nix-github-actions.url = "github:nix-community/nix-github-actions";
-  inputs.nix-github-actions.inputs.nixpkgs.follows = "nixpkgs";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/master";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
+    nix-github-actions.url = "github:nix-community/nix-github-actions";
+    nix-github-actions.inputs.nixpkgs.follows = "nixpkgs";
+    mdbook-nixdoc.url = "github:adisbladis/mdbook-nixdoc";
+    mdbook-nixdoc.inputs.nixpkgs.follows = "nixpkgs";
+    mdbook-nixdoc.inputs.nix-github-actions.follows = "nix-github-actions";
+    mdbook-nixdoc.inputs.flake-parts.follows = "flake-parts";
+    mdbook-nixdoc.inputs.treefmt-nix.follows = "treefmt-nix";
+  };
 
   outputs = inputs @ { flake-parts, nix-github-actions, ... }:
     let
@@ -26,7 +33,7 @@
           };
         };
 
-        perSystem = { pkgs, self', ... }:
+        perSystem = { pkgs, self', system, ... }:
           let
             inherit (pkgs) stdenv;
             drvArgs = {
@@ -38,6 +45,10 @@
             treefmt.imports = [ ./dev/treefmt.nix ];
             packages.nix-unit = pkgs.callPackage ./default.nix drvArgs;
             packages.default = self'.packages.nix-unit;
+            packages.doc = pkgs.callPackage ./doc {
+              inherit self;
+              mdbook-nixdoc = inputs.mdbook-nixdoc.packages.${system}.default;
+            };
             devShells.default =
               let
                 pythonEnv = pkgs.python3.withPackages (_ps: [ ]);
@@ -46,6 +57,8 @@
                 nativeBuildInputs = self'.packages.nix-unit.nativeBuildInputs ++ [
                   pythonEnv
                   pkgs.difftastic
+                  pkgs.nixdoc
+                  pkgs.mdbook
                 ];
                 inherit (self'.packages.nix-unit) buildInputs;
                 shellHook = lib.optionalString stdenv.isLinux ''
