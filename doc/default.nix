@@ -11,7 +11,6 @@ stdenv.mkDerivation {
   pname = "nix-unit-docs-html";
   version = "0.1";
   src = self;
-  sourceRoot = "source/doc";
   nativeBuildInputs = [
     nixdoc
     mdbook
@@ -27,6 +26,7 @@ stdenv.mkDerivation {
 
   buildPhase = ''
     runHook preBuild
+    cd doc
     chmod +w ../ && mkdir ../.git  # Trick open-on-gh to find the git root
     mdbook build
     runHook postBuild
