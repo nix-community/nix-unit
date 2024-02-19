@@ -17,8 +17,9 @@
         phases = [ "unpackPhase" "buildPhase" ];
         src = inputs.self;
         buildPhase = ''
+          export HOME="$(realpath .)"
           ${pkgs.lib.getExe inputs.nix-unit.packages.${system}.default} \
-            --eval-store $(realpath .) \
+            --eval-store "$HOME" \
             --flake \
             --option extra-experimental-features flakes \
             --override-input nixpkgs ${inputs.nixpkgs.outPath} \
