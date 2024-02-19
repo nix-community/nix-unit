@@ -14,7 +14,7 @@ renderer = ["html"]
 
 [output.html]
 git-repository-url = "https://github.com/nix-community/nix-unit"
-git-branch = "master"
+git-branch = "main"
 open-on-text = """
 <hr style="margin-top: 5em;" />
 Found an issue? [Edit this page on GitHub.]
