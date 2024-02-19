@@ -79,7 +79,7 @@ static std::string errorToString(nix::Error *error) {
     }
 }
 
-struct MyArgs : MixEvalArgs, MixCommonArgs {
+struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
     std::string releaseExpr;
     Path gcRootsDir;
     bool flake = false;
