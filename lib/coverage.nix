@@ -1,16 +1,17 @@
 { lib }:
 let
-  inherit (lib) mapAttrs toUpper substring stringLength;
+  inherit (lib) toUpper substring stringLength;
 
   capitalise = s: toUpper (substring 0 1 s) + (substring 1 (stringLength s) s);
 
-in {
+in
+{
 
   /*
-  Generate coverage testing for public interfaces.
+    Generate coverage testing for public interfaces.
 
-  Example:
-  let
+    Example:
+    let
     # The public interface (attrset) we are testing
     public = {
       addOne = x: x + 1;
@@ -24,7 +25,7 @@ in {
         };
       };
     };
-  in addCoverage public tests
+    in addCoverage public tests
 
   */
   addCoverage =
@@ -35,13 +36,15 @@ in {
     (
       assert ! tests ? coverage;
       tests // {
-        coverage = lib.mapAttrs' (n: v: {
-        name = "test" + (capitalise n);
-        value = {
-          expr = tests ? ${n};
-          expected = true;
-        };
-        }) public;
+        coverage = lib.mapAttrs'
+          (n: _v: {
+            name = "test" + (capitalise n);
+            value = {
+              expr = tests ? ${n};
+              expected = true;
+            };
+          })
+          public;
       }
     );
 
