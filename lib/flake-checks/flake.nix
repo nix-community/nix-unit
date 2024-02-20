@@ -16,9 +16,10 @@
         name = "default";
         phases = [ "unpackPhase" "buildPhase" ];
         src = inputs.self;
+        nativeBuildInputs = [ inputs.nix-unit.packages.${system}.default ];
         buildPhase = ''
           export HOME="$(realpath .)"
-          ${pkgs.lib.getExe inputs.nix-unit.packages.${system}.default} \
+          nix-unit \
             --eval-store "$HOME" \
             --flake \
             --option extra-experimental-features flakes \
