@@ -33,6 +33,8 @@
           };
         };
 
+        flake.lib = import ./lib { inherit lib; };
+
         perSystem = { pkgs, self', system, ... }:
           let
             inherit (pkgs) stdenv;
