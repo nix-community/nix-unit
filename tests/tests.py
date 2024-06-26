@@ -119,6 +119,7 @@ def run_flake_checks():
             cd ../lib/flake-checks
             nix flake check \
               --no-write-lock-file \
+              --extra-experimental-features "nix-command flakes" \
               --override-input nix-unit "$NIX_UNIT_OUTPATH"
          """,
         ],
