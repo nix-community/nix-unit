@@ -22,7 +22,8 @@
           nix-unit \
             --eval-store "$HOME" \
             --flake \
-            --option extra-experimental-features flakes \
+            # The nix derivation must be able to find all used inputs in the nix-store because it cannot download it during buildTime. 
+            --override-input nixpkgs ${inputs.nixpkgs.outPath} \
             --override-input nixpkgs ${inputs.nixpkgs.outPath} \
             --override-input flake-utils ${inputs.flake-utils.outPath} \
             --override-input flake-utils/systems ${inputs.flake-utils.inputs.systems.outPath} \
