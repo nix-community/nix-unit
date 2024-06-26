@@ -108,6 +108,28 @@ suites = {
 }
 
 
+def run_flake_checks():
+    print("Testing: flake checks")
+
+    proc = subprocess.run(
+        [
+            "bash",
+            "-c",
+            """
+            cd ../lib/flake-checks
+            nix flake check \
+              --no-write-lock-file \
+              --override-input nix-unit "$NIX_UNIT_OUTPATH"
+         """,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    if (stderr := proc.stderr.decode().find(pattern := "0/1 successful")) == -1:
+        raise ValueError(f"{stderr}\n\ndoesn't contain {pattern=}")
+
+
 if __name__ == "__main__":
     test_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(test_dir)
@@ -118,3 +140,5 @@ if __name__ == "__main__":
 
         print(f"Testing: {suite} (flake)")
         run_suite(suite, expected, flake=True)
+
+    run_flake_checks()
