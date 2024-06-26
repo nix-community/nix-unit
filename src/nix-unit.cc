@@ -174,7 +174,7 @@ static Value *releaseExprTopLevelValue(EvalState &state, Bindings &autoArgs) {
 
     if (myArgs.fromArgs) {
         Expr *e = state.parseExprFromString(
-            myArgs.releaseExpr, state.rootPath(CanonPath::fromCwd()));
+            myArgs.releaseExpr, state.rootPath(CanonPath::root));
         state.eval(e, vTop);
     } else {
         state.evalFile(lookupFileArg(state, myArgs.releaseExpr), vTop);
@@ -198,7 +198,7 @@ void runDiffTool(std::string diffTool, std::string_view actual,
 
     auto res = runProgram(RunOptions{
         .program = "/bin/sh",
-        .searchPath = true,
+        .lookupPath = true,
         .args = {"-c", diffTool + " --color always " + actualPath + " " +
                            expectedPath},
     });
@@ -216,9 +216,9 @@ struct TestResults {
     int success;
 };
 
-std::string printValueWithRepated(const EvalState &state, const Value &v) {
+std::string printValueWithRepated(EvalState &state, Value &v) {
     std::ostringstream out;
-    v.print(state.symbols, out, true);
+    v.print(state, out, PrintOptions{ .force = true });
     return out.str();
 }
 
@@ -245,7 +245,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
     const auto msgNameSym = state->symbols.create("msg");
 
     if (vRoot->type() != nAttrs) {
-        throw EvalError("Top level attribute is not an attrset");
+        throw EvalError(*state, "Top level attribute is not an attrset");
     }
 
     TestResults results = {0, 0};
@@ -261,16 +261,16 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
             state->forceAttrs(*test, noPos, "while evaluating test");
 
             if (test->type() != nAttrs) {
-                throw EvalError("Test is not an attrset");
+                throw EvalError(*state, "Test is not an attrset");
             }
 
-            auto expr = test->attrs->get(exprNameSym);
+            auto expr = test->attrs()->get(exprNameSym);
             if (!expr) {
-                throw EvalError("Missing attrset key 'expr'");
+                throw EvalError(*state,"Missing attrset key 'expr'");
             }
 
-            auto expectedError = test->attrs->get(expectedErrorNameSym);
-            auto expected = test->attrs->get(expectedNameSym);
+            auto expectedError = test->attrs()->get(expectedErrorNameSym);
+            auto expected = test->attrs()->get(expectedNameSym);
 
             bool success = false;
 
@@ -298,7 +298,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                 // Get expectedError.type
                 std::string expectedErrorType;
                 auto expectedErrorTypeAttr =
-                    expectedError->value->attrs->get(typeNameSym);
+                    expectedError->value->attrs()->get(typeNameSym);
                 if (expectedErrorTypeAttr) {
                     expectedErrorType = state->forceStringNoCtx(
                         *expectedErrorTypeAttr->value, noPos,
@@ -308,7 +308,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                 // Get expectedError.msg
                 std::string expectedErrorMsg;
                 auto expectedErrorMsgAttr =
-                    expectedError->value->attrs->get(msgNameSym);
+                    expectedError->value->attrs()->get(msgNameSym);
                 if (expectedErrorMsgAttr) {
                     expectedErrorMsg =
                         state->forceStringNoCtx(*expectedErrorMsgAttr->value,
@@ -316,7 +316,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                 }
 
                 if (expectedErrorType.empty() && expectedErrorMsg.empty()) {
-                    throw new EvalError("Missing both 'expectedError.msg' & "
+                    throw new EvalError(*state,"Missing both 'expectedError.msg' & "
                                         "'expectedError.type'");
                 }
 
@@ -361,7 +361,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                 }
 
                 if (!caught) {
-                    throw new EvalError(
+                    throw new EvalError(*state,
                         "Expected error, but no error was caught");
                 }
 
@@ -372,7 +372,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
 
             } else {
                 throw EvalError(
-                    "Missing attrset keys 'expected' or 'expectedError'");
+                    *state, "Missing attrset keys 'expected' or 'expectedError'");
             }
 
             if (success) {
@@ -390,7 +390,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
     std::function<void(std::vector<std::string>, nix::Value *)> recurseTests;
     recurseTests = [&](std::vector<std::string> attrPath,
                        nix::Value *testAttrs) -> void {
-        for (auto &i : testAttrs->attrs->lexicographicOrder(state->symbols)) {
+        for (auto &i : testAttrs->attrs()->lexicographicOrder(state->symbols)) {
             const std::string &name = state->symbols[i->name];
 
             // Copy and append current attribute
@@ -456,7 +456,7 @@ int main(int argc, char **argv) {
         }
 
         auto evalState = std::make_shared<EvalState>(
-            myArgs.searchPath, openStore(*myArgs.evalStoreUrl));
+            myArgs.lookupPath, openStore(*myArgs.evalStoreUrl));
 
         auto results = runTests(ref<EvalState>(evalState),
                                 *myArgs.getAutoArgs(*evalState));
@@ -470,7 +470,7 @@ int main(int argc, char **argv) {
             << std::endl;
 
         if (!success) {
-            throw EvalError("Tests failed");
+            throw EvalError(*evalState,"Tests failed");
         }
     });
 }
