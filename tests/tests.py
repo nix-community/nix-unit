@@ -124,10 +124,11 @@ def run_flake_checks():
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        text=True,
     )
 
-    if (stderr := proc.stderr.decode().find(pattern := "0/1 successful")) == -1:
-        raise ValueError(f"{stderr}\n\ndoesn't contain {pattern=}")
+    if proc.stderr.find(pattern := "0/1 successful") == -1:
+        raise ValueError(f"output: {proc.stderr}\n\ndoesn't contain {pattern=}")
 
 
 if __name__ == "__main__":
