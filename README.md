@@ -22,14 +22,21 @@ No additional processing and coordination overhead caused by the external proces
 This comparison matrix was originally taken from [Unit test your Nix code](https://www.tweag.io/blog/2022-09-01-unit-test-your-nix-code/) but has been adapted.
 Pythonix is excluded as it's unmaintained.
 
-| Tool        | Can test eval failures | Tests defined in Nix | in nixpkgs | snapshot testing(1) |
-| ----------- | ---------------------- | -------------------- | ---------- |-------------------- |
-| Nix-unit    | yes                    | yes                  | yes        | no                  |
-| runTests    | no                     | yes                  | yes        | no                  |
-| Nixt        | no                     | yes                  | no         | no                  |
-| Namaka      | no                     | yes                  | yes        | yes                 |
+| Tool        | Can test eval failures | Tests defined in Nix | in nixpkgs | snapshot testing(1) | Supports Lix |
+| ----------- | ---------------------- | -------------------- | ---------- |-------------------- | ------------ |
+| Nix-unit    | yes                    | yes                  | yes        | no                  | no           |
+| Lix-unit    | yes                    | yes                  | no         | no                  | yes (2)      |
+| runTests    | no                     | yes                  | yes        | no                  | yes          |
+| Nixt        | no                     | yes                  | no         | no                  | yes          |
+| Namaka      | no                     | yes                  | yes        | yes                 | ?            |
 
 1. [Snapshot testing](https://github.com/nix-community/namaka#snapshot-testing)
+2. While lix-unit supports Lix, it does not support Nix, and vice versa.
+
+## Using with Lix instead of Nix
+
+The Lix codebase has gone through significant changes, and it's not tenable to have a single code base that supports both implementations.
+Therefore nix-unit has been forked into [lix-unit](https://github.com/adisbladis/lix-unit)
 
 ## Documentation
 
