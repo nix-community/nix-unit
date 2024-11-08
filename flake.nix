@@ -1,7 +1,7 @@
 {
   description = "Nix unit test runner";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/master";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/release-24.05";
   inputs.flake-parts.url = "github:hercules-ci/flake-parts";
   inputs.flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
   inputs.treefmt-nix.url = "github:numtide/treefmt-nix";
@@ -31,7 +31,7 @@
             inherit (pkgs) stdenv;
             drvArgs = {
               srcDir = self;
-              nix = pkgs.nixUnstable;
+              inherit (pkgs) nix;
             };
           in
           {

@@ -455,8 +455,10 @@ int main(int argc, char **argv) {
             loggerSettings.showTrace.assign(true);
         }
 
-        auto evalState = std::make_shared<EvalState>(
-            myArgs.searchPath, openStore(*myArgs.evalStoreUrl));
+        auto evalStore =
+            myArgs.evalStoreUrl ? openStore(*myArgs.evalStoreUrl) : openStore();
+        auto evalState =
+            std::make_shared<EvalState>(myArgs.searchPath, evalStore);
 
         auto results = runTests(ref<EvalState>(evalState),
                                 *myArgs.getAutoArgs(*evalState));
