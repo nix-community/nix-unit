@@ -42,7 +42,6 @@
         {
           pkgs,
           self',
-          system,
           ...
         }:
         let
@@ -58,7 +57,6 @@
           packages.default = self'.packages.nix-unit;
           packages.doc = pkgs.callPackage ./doc {
             inherit self;
-            mdbook-nixdoc = inputs.mdbook-nixdoc.packages.${system}.default;
           };
           devShells.default =
             let
@@ -71,7 +69,7 @@
                 pkgs.nixdoc
                 pkgs.mdbook
                 pkgs.mdbook-open-on-gh
-                inputs.mdbook-nixdoc.packages.${system}.default
+                pkgs.mdbook-cmdrun
               ];
               inherit (self'.packages.nix-unit) buildInputs;
               shellHook = lib.optionalString stdenv.isLinux ''

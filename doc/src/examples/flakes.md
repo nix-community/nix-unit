@@ -31,7 +31,7 @@ You can also use `nix-unit` in flake checks ([link](https://nixos.org/manual/nix
 Create a `tests` and `checks` outputs.
 
 ```nix
-{{#include ../lib/flake-checks/flake.nix}}
+<!-- cmdrun cat ../../../lib/flake-checks/flake.nix -->
 ```
 
 Run `nix flake check` and get an error as expected.

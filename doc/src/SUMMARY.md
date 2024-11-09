@@ -11,7 +11,7 @@
 
 # Nix Reference documentation
 
-- [Coverage](./lib/coverage.nix)
+- [Coverage](./coverage.md)
 
 # Contributing
 
