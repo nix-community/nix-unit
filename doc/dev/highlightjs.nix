@@ -12,15 +12,12 @@ let
     hash = "sha256-6IW8WFlWdb0txEQxYvrLcAxMx/F5qGpxwUbWpTloFaY=";
   };
 
-  npmlock2nix = pkgs.callPackage
-    (pkgs.fetchFromGitHub {
-      owner = "nix-community";
-      repo = "npmlock2nix";
-      rev = "9197bbf397d76059a76310523d45df10d2e4ca81";
-      sha256 = "sha256-sJM82Sj8yfQYs9axEmGZ9Evzdv/kDcI9sddqJ45frrU=";
-    })
-    { };
-
+  npmlock2nix = pkgs.callPackage (pkgs.fetchFromGitHub {
+    owner = "nix-community";
+    repo = "npmlock2nix";
+    rev = "9197bbf397d76059a76310523d45df10d2e4ca81";
+    sha256 = "sha256-sJM82Sj8yfQYs9axEmGZ9Evzdv/kDcI9sddqJ45frrU=";
+  }) { };
 
 in
 npmlock2nix.v2.build {
@@ -32,8 +29,8 @@ npmlock2nix.v2.build {
   '';
   buildCommands = [
     "git init"
-    "git config user.email \"you@example.com\""
-    "git config user.name \"Your Name\""
+    ''git config user.email "you@example.com"''
+    ''git config user.name "Your Name"''
     "git add $(ls | grep -v node_modules | grep -v extra)"
     "git commit -m 'Dummy commit'"
     "node tools/build.js"

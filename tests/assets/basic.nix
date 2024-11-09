@@ -5,8 +5,12 @@
   };
 
   testFail = {
-    expr = { x = 1; };
-    expected = { y = 1; };
+    expr = {
+      x = 1;
+    };
+    expected = {
+      y = 1;
+    };
   };
 
   testFailEval = {

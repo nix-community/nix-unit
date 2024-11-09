@@ -51,17 +51,16 @@ in
     # Attribute set of tests to match agains
     tests:
     (
-      assert ! tests ? coverage;
-      tests // {
-        coverage = lib.mapAttrs'
-          (n: _v: {
-            name = "test" + (capitalise n);
-            value = {
-              expr = tests ? ${n};
-              expected = true;
-            };
-          })
-          public;
+      assert !tests ? coverage;
+      tests
+      // {
+        coverage = lib.mapAttrs' (n: _v: {
+          name = "test" + (capitalise n);
+          value = {
+            expr = tests ? ${n};
+            expected = true;
+          };
+        }) public;
       }
     );
 

@@ -1,21 +1,23 @@
-{ stdenv
-, lib
-, srcDir ? null
-, boost
-, clang-tools
-, cmake
-, difftastic
-, makeWrapper
-, meson
-, ninja
-, nix
-, nlohmann_json
-, pkg-config
+{
+  stdenv,
+  lib,
+  srcDir ? null,
+  boost,
+  clang-tools,
+  cmake,
+  difftastic,
+  makeWrapper,
+  meson,
+  ninja,
+  nix,
+  nlohmann_json,
+  pkg-config,
 }:
 
 let
-  filterMesonBuild = builtins.filterSource
-    (path: type: type != "directory" || baseNameOf path != "build");
+  filterMesonBuild = builtins.filterSource (
+    path: type: type != "directory" || baseNameOf path != "build"
+  );
 in
 stdenv.mkDerivation {
   pname = "nix-unit";
