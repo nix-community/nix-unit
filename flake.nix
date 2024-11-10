@@ -9,9 +9,6 @@
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
     nix-github-actions.url = "github:nix-community/nix-github-actions";
     nix-github-actions.inputs.nixpkgs.follows = "nixpkgs";
-    mdbook-nixdoc.url = "github:adisbladis/mdbook-nixdoc";
-    mdbook-nixdoc.inputs.nixpkgs.follows = "nixpkgs";
-    mdbook-nixdoc.inputs.nix-github-actions.follows = "nix-github-actions";
   };
 
   outputs =
