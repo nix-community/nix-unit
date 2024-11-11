@@ -117,10 +117,12 @@ def run_flake_checks():
             "-c",
             """
             cd ../lib/flake-checks
-            nix flake check \
+            nix flake check --no-update-lock-file \
               --no-write-lock-file \
               --extra-experimental-features "nix-command flakes" \
-              --override-input nix-unit "$NIX_UNIT_OUTPATH"
+              --override-input nix-unit "$NIX_UNIT_OUTPATH" \
+              --reference-lock-file "$NIX_UNIT_OUTPATH/flake.lock" \
+              .
          """,
         ],
         stdout=subprocess.PIPE,

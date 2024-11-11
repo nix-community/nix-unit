@@ -45,7 +45,7 @@
           inherit (pkgs) stdenv;
           drvArgs = {
             srcDir = self;
-            nix = pkgs.nixVersions.nix_2_23;
+            nix = pkgs.nixVersions.nix_2_24;
           };
         in
         {
