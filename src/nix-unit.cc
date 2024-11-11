@@ -16,6 +16,7 @@
 #include <nix/common-eval-args.hh>
 #include <nix/flake/flakeref.hh>
 #include <nix/flake/flake.hh>
+#include <nix/flake/lockfile.hh>
 #include <nix/attr-path.hh>
 #include <nix/derivations.hh>
 #include <nix/local-fs-store.hh>
@@ -24,8 +25,8 @@
 #include <nix/installables.hh>
 #include <nix/path-with-outputs.hh>
 #include <nix/installable-flake.hh>
-
 #include <nix/value-to-json.hh>
+#include <nix/eval-gc.hh>
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -154,7 +155,8 @@ struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
                 lockFlags.allowUnlocked = true;
                 lockFlags.inputOverrides.insert_or_assign(
                     flake::parseInputPath(inputPath),
-                    parseFlakeRef(flakeRef, absPath("."), true));
+                    parseFlakeRef(nix::fetchSettings, flakeRef, absPath("."),
+                                  true));
             }},
         });
 
@@ -227,7 +229,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
         if (myArgs.flake) {
             auto [flakeRef, fragment, outputSpec] =
                 parseFlakeRefWithFragmentAndExtendedOutputsSpec(
-                    myArgs.releaseExpr, absPath("."));
+                    nix::fetchSettings, myArgs.releaseExpr, absPath("."));
             InstallableFlake flake{
                 {}, state, std::move(flakeRef), fragment, outputSpec,
                 {}, {},    myArgs.lockFlags};
@@ -393,7 +395,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
     recurseTests = [&](std::vector<std::string> attrPath,
                        nix::Value *testAttrs) -> void {
         for (auto &i : testAttrs->attrs()->lexicographicOrder(state->symbols)) {
-            const std::string &name = state->symbols[i->name];
+            const std::string &name = std::string(state->symbols[i->name]);
 
             // Copy and append current attribute
             std::vector<std::string> curAttrPath = attrPath;
@@ -459,7 +461,8 @@ int main(int argc, char **argv) {
         auto evalStore =
             myArgs.evalStoreUrl ? openStore(*myArgs.evalStoreUrl) : openStore();
         auto evalState =
-            std::make_shared<EvalState>(myArgs.lookupPath, evalStore);
+            std::make_shared<EvalState>(myArgs.lookupPath, evalStore,
+                                        nix::fetchSettings, nix::evalSettings);
 
         auto results = runTests(ref<EvalState>(evalState),
                                 *myArgs.getAutoArgs(*evalState));
