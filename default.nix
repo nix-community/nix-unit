@@ -21,7 +21,7 @@ let
 in
 stdenv.mkDerivation {
   pname = "nix-unit";
-  version = "2.24.0";
+  version = "2.24.1";
   src = if srcDir == null then filterMesonBuild ./. else srcDir;
   buildInputs = [
     nlohmann_json
