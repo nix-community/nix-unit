@@ -19,7 +19,12 @@
     in
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = inputs.nixpkgs.lib.systems.flakeExposed;
-      imports = [ inputs.treefmt-nix.flakeModule ];
+      imports = [
+        inputs.treefmt-nix.flakeModule
+        inputs.flake-parts.flakeModules.modules
+        inputs.flake-parts.flakeModules.partitions
+        ./lib/modules.nix
+      ];
 
       flake.githubActions = nix-github-actions.lib.mkGithubMatrix {
         checks = {
@@ -77,5 +82,16 @@
               '';
             };
         };
+
+      # Extra things to load only when accessing development-specific attributes
+      # such as `checks`
+      partitionedAttrs.checks = "dev";
+      partitionedAttrs.tests = "dev"; # lib/modules/flake/dogfood.nix
+      partitions.dev.module = {
+        imports = [
+          self.modules.flake.default
+          ./lib/modules/flake/dogfood.nix
+        ];
+      };
     };
 }
