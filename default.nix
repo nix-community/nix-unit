@@ -1,7 +1,6 @@
 {
   stdenv,
   lib,
-  srcDir ? null,
   boost,
   clang-tools,
   cmake,
@@ -15,14 +14,20 @@
 }:
 
 let
-  filterMesonBuild = builtins.filterSource (
-    path: type: type != "directory" || baseNameOf path != "build"
-  );
+  inherit (lib) fileset;
+  src = lib.fileset.toSource {
+    fileset = files;
+    root = ./.;
+  };
+  files = fileset.unions [
+    ./src
+    ./meson.build
+  ];
 in
 stdenv.mkDerivation {
   pname = "nix-unit";
   version = "2.24.1";
-  src = if srcDir == null then filterMesonBuild ./. else srcDir;
+  inherit src;
   buildInputs = [
     nlohmann_json
     nix
