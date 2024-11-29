@@ -37,6 +37,7 @@
 
       perSystem =
         {
+          config,
           pkgs,
           self',
           ...
@@ -67,6 +68,7 @@
                 pkgs.mdbook
                 pkgs.mdbook-open-on-gh
                 pkgs.mdbook-cmdrun
+                config.treefmt.build.wrapper
               ];
               inherit (self'.packages.nix-unit) buildInputs;
               shellHook = lib.optionalString stdenv.isLinux ''
