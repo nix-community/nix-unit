@@ -23,6 +23,7 @@
         inputs.flake-parts.flakeModules.modules
         inputs.flake-parts.flakeModules.partitions
         ./lib/modules.nix
+        ./templates/flake-module.nix
       ];
 
       flake.githubActions = nix-github-actions.lib.mkGithubMatrix {
