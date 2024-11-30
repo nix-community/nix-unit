@@ -26,6 +26,8 @@ $ nix-unit --flake '.#libTests'
 
 ## flake checks
 
+Note: [flake-parts](./flake-parts.md) can manage this for you.
+
 You can also use `nix-unit` in flake checks ([link](https://nixos.org/manual/nix/unstable/command-ref/new-cli/nix3-flake-check)).
 
 Create a `tests` and `checks` outputs.
