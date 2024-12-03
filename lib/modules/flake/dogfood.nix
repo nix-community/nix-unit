@@ -7,8 +7,9 @@
 {
   perSystem = {
     nix-unit.inputs = {
-      inherit (inputs) nixpkgs flake-parts treefmt-nix;
+      # inherit (inputs) nixpkgs flake-parts treefmt-nix;
     };
+    nix-unit.allowNetwork = true;
     nix-unit.tests = {
       "test integer equality is reflexive" = {
         expr = "123";
