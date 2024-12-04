@@ -6,6 +6,7 @@
 
 - [Simple](./examples/simple.md)
 - [Flakes](./examples/flakes.md)
+- [Flake-parts](./examples/flake-parts.md)
 - [Trees](./examples/trees.md)
 - [Errors](./examples/errors.md)
 

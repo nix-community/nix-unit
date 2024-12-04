@@ -19,7 +19,12 @@
     in
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = inputs.nixpkgs.lib.systems.flakeExposed;
-      imports = [ inputs.treefmt-nix.flakeModule ];
+      imports = [
+        inputs.flake-parts.flakeModules.modules
+        inputs.flake-parts.flakeModules.partitions
+        ./lib/modules.nix
+        ./templates/flake-module.nix
+      ];
 
       flake.githubActions = nix-github-actions.lib.mkGithubMatrix {
         checks = {
@@ -37,6 +42,7 @@
 
       perSystem =
         {
+          config,
           pkgs,
           self',
           ...
@@ -48,7 +54,6 @@
           };
         in
         {
-          treefmt.imports = [ ./dev/treefmt.nix ];
           packages.nix-unit = pkgs.callPackage ./default.nix drvArgs;
           packages.default = self'.packages.nix-unit;
           packages.doc = pkgs.callPackage ./doc {
@@ -66,6 +71,7 @@
                 pkgs.mdbook
                 pkgs.mdbook-open-on-gh
                 pkgs.mdbook-cmdrun
+                config.treefmt.build.wrapper
               ];
               inherit (self'.packages.nix-unit) buildInputs;
               shellHook = lib.optionalString stdenv.isLinux ''
@@ -74,5 +80,21 @@
               '';
             };
         };
+
+      # Extra things to load only when accessing development-specific attributes
+      # such as `checks`
+      partitionedAttrs.checks = "dev";
+      partitionedAttrs.devShells = "dev";
+      partitionedAttrs.tests = "dev"; # lib/modules/flake/dogfood.nix
+      partitions.dev.module = {
+        imports = [
+          inputs.treefmt-nix.flakeModule
+          self.modules.flake.default
+          ./lib/modules/flake/dogfood.nix
+        ];
+        perSystem = {
+          treefmt.imports = [ ./dev/treefmt.nix ];
+        };
+      };
     };
 }
