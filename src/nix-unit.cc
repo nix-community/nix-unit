@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <regex>
 
-#include <nix/eval-settings.hh>
+// #include <nix/eval-settings.hh>
 #include <nix/config.h>
 #include <nix/shared.hh>
 #include <nix/store-api.hh>
@@ -14,19 +14,19 @@
 #include <nix/get-drvs.hh>
 #include <nix/globals.hh>
 #include <nix/common-eval-args.hh>
-#include <nix/flake/flakeref.hh>
-#include <nix/flake/flake.hh>
-#include <nix/flake/lockfile.hh>
+// #include <nix/flake/flakeref.hh>
+// #include <nix/flake/flake.hh>
+// #include <nix/flake/lockfile.hh>
 #include <nix/attr-path.hh>
 #include <nix/derivations.hh>
-#include <nix/local-fs-store.hh>
+// #include <nix/local-fs-store.hh>
 #include <nix/logging.hh>
-#include <nix/error.hh>
-#include <nix/installables.hh>
-#include <nix/path-with-outputs.hh>
-#include <nix/installable-flake.hh>
+// #include <nix/error.hh>
+// #include <nix/installables.hh>
+// #include <nix/path-with-outputs.hh>
+// #include <nix/installable-flake.hh>
 #include <nix/value-to-json.hh>
-#include <nix/eval-gc.hh>
+// #include <nix/eval-gc.hh>
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -57,33 +57,32 @@ std::string attrPathJoin(std::vector<std::string> path) {
 
 // Errors as defined src/libexpr/nixexpr.hh, ordered by specifity, descending
 static std::string errorToString(nix::Error *error) {
-    if (nullptr != dynamic_cast<nix::RestrictedPathError *>(error)) {
-        return std::string("RestrictedPathError");
-    } else if (nullptr != dynamic_cast<nix::MissingArgumentError *>(error)) {
-        return std::string("MissingArgumentError");
-    } else if (nullptr != dynamic_cast<nix::UndefinedVarError *>(error)) {
-        return std::string("UndefinedVarError");
-    } else if (nullptr != dynamic_cast<nix::TypeError *>(error)) {
-        return std::string("TypeError");
-    } else if (nullptr != dynamic_cast<nix::Abort *>(error)) {
-        return std::string("Abort");
-    } else if (nullptr != dynamic_cast<nix::ThrownError *>(error)) {
-        return std::string("ThrownError");
-    } else if (nullptr != dynamic_cast<nix::AssertionError *>(error)) {
-        return std::string("AssertionError");
-    } else if (nullptr != dynamic_cast<nix::ParseError *>(error)) {
-        return std::string("ParseError");
-    } else if (nullptr != dynamic_cast<nix::EvalError *>(error)) {
-        return std::string("EvalError");
-    } else {
+    // if (nullptr != dynamic_cast<nix::RestrictedPathError *>(error)) {
+    //     return std::string("RestrictedPathError");
+    // } else if (nullptr != dynamic_cast<nix::MissingArgumentError *>(error)) {
+    //     return std::string("MissingArgumentError");
+    // } else if (nullptr != dynamic_cast<nix::UndefinedVarError *>(error)) {
+    //     return std::string("UndefinedVarError");
+    // } else if (nullptr != dynamic_cast<nix::TypeError *>(error)) {
+    //     return std::string("TypeError");
+    // } else if (nullptr != dynamic_cast<nix::Abort *>(error)) {
+    //     return std::string("Abort");
+    // } else if (nullptr != dynamic_cast<nix::ThrownError *>(error)) {
+    //     return std::string("ThrownError");
+    // } else if (nullptr != dynamic_cast<nix::AssertionError *>(error)) {
+    //     return std::string("AssertionError");
+    // } else if (nullptr != dynamic_cast<nix::ParseError *>(error)) {
+    //     return std::string("ParseError");
+    // } else if (nullptr != dynamic_cast<nix::EvalError *>(error)) {
+    //     return std::string("EvalError");
+    // } else {
         return std::string("Error");
-    }
+    // }
 }
 
 struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
     std::string releaseExpr;
     Path gcRootsDir;
-    bool flake = false;
     bool quiet = false;
     bool fromArgs = false;
     bool showTrace = false;
@@ -92,12 +91,6 @@ struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
     bool checkCacheStatus = false;
     size_t nrWorkers = 1;
     size_t maxMemorySize = 4096;
-
-    // usually in MixFlakeOptions
-    flake::LockFlags lockFlags = {.updateLockFile = false,
-                                  .writeLockFile = false,
-                                  .useRegistries = false,
-                                  .allowUnlocked = false};
 
     MyArgs() : MixCommonArgs("nix-unit") {
         addFlag({
@@ -125,10 +118,6 @@ struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
                  .labels = {"path"},
                  .handler = {&gcRootsDir}});
 
-        addFlag({.longName = "flake",
-                 .description = "build a flake",
-                 .handler = {&flake, true}});
-
         addFlag({.longName = "quiet",
                  .description = "only output results from failing tests",
                  .handler = {&quiet, true}});
@@ -142,23 +131,6 @@ struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
                  .shortName = 'E',
                  .description = "treat the argument as a Nix expression",
                  .handler = {&fromArgs, true}});
-
-        // usually in MixFlakeOptions
-        addFlag({
-            .longName = "override-input",
-            .description =
-                "Override a specific flake input (e.g. `dwarffs/nixpkgs`).",
-            .category = category,
-            .labels = {"input-path", "flake-url"},
-            .handler = {[&](std::string inputPath, std::string flakeRef) {
-                // overriden inputs are unlocked
-                lockFlags.allowUnlocked = true;
-                lockFlags.inputOverrides.insert_or_assign(
-                    flake::parseInputPath(inputPath),
-                    parseFlakeRef(nix::fetchSettings, flakeRef, absPath("."),
-                                  true));
-            }},
-        });
 
         expectArg("expr", &releaseExpr);
     }
@@ -195,8 +167,8 @@ void runDiffTool(std::string diffTool, std::string_view actual,
     Path actualPath = (Path)tmpDir + "/actual.nix";
     Path expectedPath = (Path)tmpDir + "/expected.nix";
 
-    writeFile(actualPath, actual);
-    writeFile(expectedPath, expected);
+    writeFile(actualPath, std::string(actual));
+    writeFile(expectedPath, std::string(expected));
 
     auto res = runProgram(RunOptions{
         .program = "/bin/sh",
@@ -226,18 +198,7 @@ std::string printValueWithRepated(EvalState &state, Value &v) {
 
 static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
     nix::Value *vRoot = [&]() {
-        if (myArgs.flake) {
-            auto [flakeRef, fragment, outputSpec] =
-                parseFlakeRefWithFragmentAndExtendedOutputsSpec(
-                    nix::fetchSettings, myArgs.releaseExpr, absPath("."));
-            InstallableFlake flake{
-                {}, state, std::move(flakeRef), fragment, outputSpec,
-                {}, {},    myArgs.lockFlags};
-
-            return flake.toValue(*state).first;
-        } else {
-            return releaseExprTopLevelValue(*state, autoArgs);
-        }
+      return releaseExprTopLevelValue(*state, autoArgs);
     }();
 
     const auto expectedErrorNameSym = state->symbols.create("expectedError");
@@ -246,7 +207,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
     const auto typeNameSym = state->symbols.create("type");
     const auto msgNameSym = state->symbols.create("msg");
 
-    if (vRoot->type() != nAttrs) {
+    if (vRoot->type != tAttrs) {
         throw EvalError(*state, "Top level attribute is not an attrset");
     }
 
@@ -262,17 +223,17 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
         try {
             state->forceAttrs(*test, noPos, "while evaluating test");
 
-            if (test->type() != nAttrs) {
+            if (test->type != tAttrs) {
                 throw EvalError(*state, "Test is not an attrset");
             }
 
-            auto expr = test->attrs()->get(exprNameSym);
+            auto expr = test->attrs->get(exprNameSym);
             if (!expr) {
                 throw EvalError(*state, "Missing attrset key 'expr'");
             }
 
-            auto expectedError = test->attrs()->get(expectedErrorNameSym);
-            auto expected = test->attrs()->get(expectedNameSym);
+            auto expectedError = test->attrs->get(expectedErrorNameSym);
+            auto expected = test->attrs->get(expectedNameSym);
 
             bool success = false;
 
@@ -394,7 +355,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
     std::function<void(std::vector<std::string>, nix::Value *)> recurseTests;
     recurseTests = [&](std::vector<std::string> attrPath,
                        nix::Value *testAttrs) -> void {
-        for (auto &i : testAttrs->attrs()->lexicographicOrder(state->symbols)) {
+        for (auto &i : testAttrs->attrs->lexicographicOrder(state->symbols)) {
             const std::string &name = std::string(state->symbols[i->name]);
 
             // Copy and append current attribute
@@ -411,7 +372,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
             {
                 nix::Value *value = i->value;
                 state->forceValue(*value, noPos);
-                if (value->type() == nAttrs) {
+                if (value->type == tAttrs) {
                     recurseTests(curAttrPath, value);
                 }
             }
@@ -438,13 +399,13 @@ int main(int argc, char **argv) {
            to the environment. */
         evalSettings.restrictEval = false;
 
-        /* When building a flake, use pure evaluation (no access to
-           'getEnv', 'currentSystem' etc. */
-        if (myArgs.impure) {
-            evalSettings.pureEval = false;
-        } else if (myArgs.flake) {
-            evalSettings.pureEval = true;
-        }
+        // /* When building a flake, use pure evaluation (no access to
+        //    'getEnv', 'currentSystem' etc. */
+        // if (myArgs.impure) {
+        //     evalSettings.pureEval = false;
+        // } else if (myArgs.flake) {
+        //     evalSettings.pureEval = true;
+        // }
 
         if (myArgs.releaseExpr == "")
             throw UsageError("no expression specified");
@@ -456,7 +417,7 @@ int main(int argc, char **argv) {
         }
 
         if (myArgs.showTrace) {
-            loggerSettings.showTrace.assign(true);
+//            loggerSettings.showTrace.assign(true);
         }
         auto evalStore =
             myArgs.evalStoreUrl ? openStore(*myArgs.evalStoreUrl) : openStore();
