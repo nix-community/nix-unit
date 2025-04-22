@@ -427,6 +427,7 @@ int main(int argc, char **argv) {
     return handleExceptions(argv[0], [&]() {
         initNix();
         initGC();
+        nix::flake::initLib(flakeSettings);
 
         myArgs.parseCmdline(argvToStrings(argc, argv));
 
