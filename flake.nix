@@ -50,7 +50,7 @@
         let
           inherit (pkgs) stdenv;
           drvArgs = {
-            nix = pkgs.nixVersions.nix_2_24;
+            nix = pkgs.nixVersions.nix_2_28;
           };
         in
         {
@@ -75,7 +75,8 @@
               ];
               inherit (self'.packages.nix-unit) buildInputs;
               shellHook = lib.optionalString stdenv.isLinux ''
-                export NIX_DEBUG_INFO_DIRS="${pkgs.curl.debug}/lib/debug:${drvArgs.nix.debug}/lib/debug''${NIX_DEBUG_INFO_DIRS:+:$NIX_DEBUG_INFO_DIRS}"
+                # TODO: add Nix debug symbols
+                export NIX_DEBUG_INFO_DIRS="${pkgs.curl.debug}/lib/debug''${NIX_DEBUG_INFO_DIRS:+:$NIX_DEBUG_INFO_DIRS}"
                 export NIX_UNIT_OUTPATH=${self}
               '';
             };
