@@ -114,6 +114,7 @@ in
               export HOME="$(realpath .)"
               echo "Running tests for " ${lib.escapeShellArg system}
               nix-unit --eval-store "$HOME" \
+                -vvvv \
                 --show-trace \
                 --extra-experimental-features flakes \
                 ${lib.concatStringsSep "\\\n  " (lib.mapAttrsToList overrideArg config.nix-unit.inputs)} \
