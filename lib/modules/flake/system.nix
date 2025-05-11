@@ -112,13 +112,21 @@ in
             }
             ''
               export HOME="$(realpath .)"
+              unset NIX_STORE
+              export NIX_STORE_DIR=${builtins.storeDir}
+              export NIX_REMOTE="$HOME/storedata"
+              echo out=$out
+              # why the heck not
+              # ls /build/home/.local/share/nix/root/nix/store/
+              env | grep NIX_
               echo "Running tests for " ${lib.escapeShellArg system}
-              nix-unit --eval-store "$HOME" \
+              nix-unit \
                 --show-trace \
                 --extra-experimental-features flakes \
                 ${lib.concatStringsSep "\\\n  " (lib.mapAttrsToList overrideArg config.nix-unit.inputs)} \
                 --flake ${self}#tests.systems.${system} \
                 ;
+              echo "Writing \"$key\" to $out"
               echo -n "$key" > $out
             ''
         );

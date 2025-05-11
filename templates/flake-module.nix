@@ -34,7 +34,11 @@
                 nativeBuildInputs = [ pkgs.nix ];
 
                 # might be fixed in https://github.com/NixOS/nix/pull/11910
-                thisReallyShouldntBeNecessary = "${./flake-parts}";
+                # works on NixOS, but not GitHub Actions yet
+                thisReallyShouldntBeNecessary = builtins.path {
+                  path = ./flake-parts;
+                  name = "source";
+                };
 
                 NIX_CONFIG = ''
                   experimental-features = nix-command flakes
