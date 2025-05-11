@@ -112,6 +112,8 @@ in
             }
             ''
               export HOME="$(realpath .)"
+              unset NIX_STORE
+              export NIX_STORE_DIR=${builtins.storeDir}
               export NIX_REMOTE="$HOME/storedata"
               echo out=$out
               # why the heck not
