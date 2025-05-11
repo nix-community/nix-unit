@@ -119,6 +119,7 @@ in
                 ${lib.concatStringsSep "\\\n  " (lib.mapAttrsToList overrideArg config.nix-unit.inputs)} \
                 --flake ${self}#tests.systems.${system} \
                 ;
+              echo "Writing $key to $out"
               echo -n "$key" > $out
             ''
         );
