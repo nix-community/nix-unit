@@ -117,7 +117,7 @@ in
               export NIX_REMOTE="$HOME/storedata"
               echo out=$out
               # why the heck not
-              ls /build/home/.local/share/nix/root/nix/store/
+              # ls /build/home/.local/share/nix/root/nix/store/
               env | grep NIX_
               echo "Running tests for " ${lib.escapeShellArg system}
               nix-unit \
