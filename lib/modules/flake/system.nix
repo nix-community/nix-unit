@@ -111,6 +111,7 @@ in
               key = "";
             }
             ''
+              unset NIX_BUILD_TOP
               export HOME="$(realpath .)"
               echo "Running tests for " ${lib.escapeShellArg system}
               nix-unit --eval-store "$HOME" \
@@ -121,7 +122,7 @@ in
                 ;
               env | grep NIX_
               echo "Writing $key to $out"
-              # echo -n "$key" > $out
+              echo -n "$key" > $out
             ''
         );
       };
