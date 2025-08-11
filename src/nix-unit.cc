@@ -7,6 +7,7 @@
 #include <nix/expr/eval-settings.hh>
 #include <nix/main/shared.hh>
 #include <nix/store/store-api.hh>
+#include <nix/store/store-open.hh>
 #include <nix/expr/eval.hh>
 #include <nix/expr/eval-inline.hh>
 #include <nix/util/util.hh>

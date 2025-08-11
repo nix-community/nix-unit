@@ -50,7 +50,7 @@
         let
           inherit (pkgs) stdenv;
           drvArgs = {
-            nix = pkgs.nixVersions.nix_2_28;
+            nix = pkgs.nixVersions.nix_2_30;
           };
         in
         {
