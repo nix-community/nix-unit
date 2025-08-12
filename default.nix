@@ -8,9 +8,9 @@
   makeWrapper,
   meson,
   ninja,
-  nix,
   nlohmann_json,
   pkg-config,
+  nixComponents,
 }:
 
 let
@@ -30,7 +30,11 @@ stdenv.mkDerivation {
   inherit src;
   buildInputs = [
     nlohmann_json
-    nix
+    nixComponents.nix-main
+    nixComponents.nix-store
+    nixComponents.nix-expr
+    nixComponents.nix-cmd
+    nixComponents.nix-flake
     boost
   ];
   nativeBuildInputs = [
