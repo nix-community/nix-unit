@@ -40,12 +40,11 @@
         }:
         let
           inherit (pkgs) stdenv;
-          drvArgs = {
-            nix = pkgs.nixVersions.nix_2_30;
-          };
         in
         {
-          packages.nix-unit = pkgs.callPackage ./default.nix drvArgs;
+          packages.nix-unit = pkgs.callPackage ./default.nix {
+            nixComponents = pkgs.nixVersions.nixComponents_2_30;
+          };
           packages.default = self'.packages.nix-unit;
           packages.doc = pkgs.callPackage ./doc {
             inherit self;
