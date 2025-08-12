@@ -7,36 +7,27 @@
     flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
-    nix-github-actions.url = "github:nix-community/nix-github-actions";
-    nix-github-actions.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
-    inputs@{ flake-parts, nix-github-actions, ... }:
+    inputs@{ flake-parts, ... }:
     let
       inherit (inputs.nixpkgs) lib;
       inherit (inputs) self;
     in
     flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = inputs.nixpkgs.lib.systems.flakeExposed;
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+        "x86_64-darwin"
+      ];
       imports = [
         inputs.flake-parts.flakeModules.modules
         inputs.flake-parts.flakeModules.partitions
         ./lib/modules.nix
         ./templates/flake-module.nix
       ];
-
-      flake.githubActions = nix-github-actions.lib.mkGithubMatrix {
-        checks = {
-          x86_64-linux = builtins.removeAttrs (self.packages.x86_64-linux // self.checks.x86_64-linux) [
-            "default"
-          ];
-          x86_64-darwin = builtins.removeAttrs (self.packages.x86_64-darwin // self.checks.x86_64-darwin) [
-            "default"
-            "treefmt"
-          ];
-        };
-      };
 
       flake.lib = import ./lib { inherit lib; };
 
@@ -50,7 +41,7 @@
         let
           inherit (pkgs) stdenv;
           drvArgs = {
-            nix = pkgs.nixVersions.nix_2_24;
+            nix = pkgs.nixVersions.nix_2_30;
           };
         in
         {
@@ -75,7 +66,8 @@
               ];
               inherit (self'.packages.nix-unit) buildInputs;
               shellHook = lib.optionalString stdenv.isLinux ''
-                export NIX_DEBUG_INFO_DIRS="${pkgs.curl.debug}/lib/debug:${drvArgs.nix.debug}/lib/debug''${NIX_DEBUG_INFO_DIRS:+:$NIX_DEBUG_INFO_DIRS}"
+                # TODO: add Nix debug symbols
+                export NIX_DEBUG_INFO_DIRS="${pkgs.curl.debug}/lib/debug''${NIX_DEBUG_INFO_DIRS:+:$NIX_DEBUG_INFO_DIRS}"
                 export NIX_UNIT_OUTPATH=${self}
               '';
             };

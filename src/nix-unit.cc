@@ -4,29 +4,30 @@
 #include <filesystem>
 #include <regex>
 
-#include <nix/eval-settings.hh>
-#include <nix/config.h>
-#include <nix/shared.hh>
-#include <nix/store-api.hh>
-#include <nix/eval.hh>
-#include <nix/eval-inline.hh>
-#include <nix/util.hh>
-#include <nix/get-drvs.hh>
-#include <nix/globals.hh>
-#include <nix/common-eval-args.hh>
+#include <nix/expr/eval-settings.hh>
+#include <nix/main/shared.hh>
+#include <nix/store/store-api.hh>
+#include <nix/store/store-open.hh>
+#include <nix/expr/eval.hh>
+#include <nix/expr/eval-inline.hh>
+#include <nix/util/util.hh>
+#include <nix/expr/get-drvs.hh>
+#include <nix/store/globals.hh>
+#include <nix/flake/settings.hh>
+#include <nix/cmd/common-eval-args.hh>
 #include <nix/flake/flakeref.hh>
 #include <nix/flake/flake.hh>
 #include <nix/flake/lockfile.hh>
-#include <nix/attr-path.hh>
-#include <nix/derivations.hh>
-#include <nix/local-fs-store.hh>
-#include <nix/logging.hh>
-#include <nix/error.hh>
-#include <nix/installables.hh>
-#include <nix/path-with-outputs.hh>
-#include <nix/installable-flake.hh>
-#include <nix/value-to-json.hh>
-#include <nix/eval-gc.hh>
+#include <nix/expr/attr-path.hh>
+#include <nix/store/derivations.hh>
+#include <nix/store/local-fs-store.hh>
+#include <nix/util/logging.hh>
+#include <nix/util/error.hh>
+#include <nix/cmd/installables.hh>
+#include <nix/store/path-with-outputs.hh>
+#include <nix/cmd/installable-flake.hh>
+#include <nix/expr/value-to-json.hh>
+#include <nix/expr/eval-gc.hh>
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -151,11 +152,12 @@ struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
             .category = category,
             .labels = {"input-path", "flake-url"},
             .handler = {[&](std::string inputPath, std::string flakeRef) {
+                PathView here(".");
                 // overriden inputs are unlocked
                 lockFlags.allowUnlocked = true;
                 lockFlags.inputOverrides.insert_or_assign(
-                    flake::parseInputPath(inputPath),
-                    parseFlakeRef(nix::fetchSettings, flakeRef, absPath("."),
+                    flake::parseInputAttrPath(inputPath),
+                    parseFlakeRef(nix::fetchSettings, flakeRef, absPath(here),
                                   true));
             }},
         });
@@ -227,9 +229,10 @@ std::string printValueWithRepated(EvalState &state, Value &v) {
 static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
     nix::Value *vRoot = [&]() {
         if (myArgs.flake) {
+            PathView here(".");
             auto [flakeRef, fragment, outputSpec] =
                 parseFlakeRefWithFragmentAndExtendedOutputsSpec(
-                    nix::fetchSettings, myArgs.releaseExpr, absPath("."));
+                    nix::fetchSettings, myArgs.releaseExpr, absPath(here));
             InstallableFlake flake{
                 {}, state, std::move(flakeRef), fragment, outputSpec,
                 {}, {},    myArgs.lockFlags};
@@ -427,7 +430,7 @@ int main(int argc, char **argv) {
     return handleExceptions(argv[0], [&]() {
         initNix();
         initGC();
-        nix::flake::initLib(flakeSettings);
+        flakeSettings.configureEvalSettings(evalSettings);
 
         myArgs.parseCmdline(argvToStrings(argc, argv));
 
