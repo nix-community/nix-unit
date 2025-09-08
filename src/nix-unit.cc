@@ -88,6 +88,7 @@ struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
     bool quiet = false;
     bool fromArgs = false;
     bool showTrace = false;
+    size_t maxFailures = SIZE_MAX;
     bool impure = false;
     bool forceRecurse = false;
     bool checkCacheStatus = false;
@@ -129,6 +130,11 @@ struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
         addFlag({.longName = "flake",
                  .description = "build a flake",
                  .handler = {&flake, true}});
+
+        addFlag({.longName = "max-failures",
+                 .description = "fail suite after a certain number of failures",
+                 .labels = {"max-failures"},
+                 .handler = {&maxFailures}});
 
         addFlag({.longName = "quiet",
                  .description = "only output results from failing tests",
@@ -218,6 +224,7 @@ void runDiffTool(std::string diffTool, std::string_view actual,
 struct TestResults {
     int total;
     int success;
+    int failures;
 };
 
 std::string printValueWithRepated(EvalState &state, Value &v) {
@@ -253,7 +260,7 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
         throw EvalError(*state, "Top level attribute is not an attrset");
     }
 
-    TestResults results = {0, 0};
+    TestResults results = {0, 0, 0};
 
     // Run a single test from attrset
     const auto runTest = [&](std::vector<std::string> attrPath,
@@ -384,6 +391,8 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
 
             if (success) {
                 results.success++;
+            } else {
+                results.failures++;
             }
         } catch (const std::exception &e) {
             std::cerr << "☢️"
@@ -407,6 +416,9 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
             // Value is a name prefixed by test run test
             if (name.rfind("test", 0) == 0) {
                 runTest(curAttrPath, i->value);
+                if (myArgs.maxFailures <= results.failures) {
+                    throw EvalError(*state, "Hit maximum failures, aborting.");
+                }
                 continue;
             }
 
