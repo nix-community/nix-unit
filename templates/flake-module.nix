@@ -21,7 +21,7 @@
           cache = "file://${
             pkgs.mkBinaryCache {
               rootPaths = [
-                (pkgs.runCommandNoCC "dummy" {
+                (pkgs.runCommand "dummy" {
                   nativeBuildInputs = [ config.packages.nix-unit ];
                 } "").inputDerivation
               ];
@@ -29,7 +29,7 @@
           }";
 
           template-flake-parts =
-            pkgs.runCommandNoCC "template-flake-parts"
+            pkgs.runCommand "template-flake-parts"
               {
                 nativeBuildInputs = [ pkgs.nix ];
 
