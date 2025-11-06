@@ -120,6 +120,7 @@ in
               nix-unit \
                 --show-trace \
                 --extra-experimental-features flakes \
+                --accept-flake-config \
                 ${lib.concatStringsSep "\\\n  " (lib.mapAttrsToList overrideArg config.nix-unit.inputs)} \
                 --flake ${self}#tests.systems.${system} \
                 ;
