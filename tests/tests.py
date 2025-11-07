@@ -97,6 +97,7 @@ suites = {
         TestResult("testPass", success=True),
         TestResult("testFail", fail=True),
         TestResult("testFailEval", eval_fail=True),
+        TestResult("testFailMissingError", fail=True),
         TestResult("testCatchThrow", success=True),
         TestResult("testCatchAbort", success=True),
         TestResult("testCatchAssertionError", success=True),

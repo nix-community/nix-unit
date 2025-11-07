@@ -18,6 +18,11 @@
     expected = 0;
   };
 
+  testFailMissingError = {
+    expr = null;
+    expectedError.type = "EvaluationError";
+  };
+
   nested = {
     testFoo = {
       expr = "bar";
