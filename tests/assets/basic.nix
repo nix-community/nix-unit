@@ -35,6 +35,13 @@
     expectedError.type = "Abort";
   };
 
+  testCatchAssertionError = {
+    expr =
+      assert false;
+      null;
+    expectedError.type = "AssertionError";
+  };
+
   testCatchMessage = {
     expr = throw "Still about 100 errors to go";
     expectedError.type = "ThrownError";

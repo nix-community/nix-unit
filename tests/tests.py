@@ -99,6 +99,7 @@ suites = {
         TestResult("testFailEval", eval_fail=True),
         TestResult("testCatchThrow", success=True),
         TestResult("testCatchAbort", success=True),
+        TestResult("testCatchAssertionError", success=True),
         TestResult("testCatchMessage", success=True),
         TestResult("testCatchThrow", success=True),
         TestResult("testCatchAbort", success=True),
