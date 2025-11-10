@@ -104,7 +104,7 @@ in
       };
       config = {
         checks.nix-unit = (if config.nix-unit.allowNetwork then toNetworkedCheck else x: x) (
-          pkgs.runCommandNoCC "nix-unit-check"
+          pkgs.runCommand "nix-unit-check"
             {
               nativeBuildInputs = [ config.nix-unit.package ];
               # For toNetworkedCheck to override
