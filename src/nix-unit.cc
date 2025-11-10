@@ -374,8 +374,10 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                 }
 
                 if (!caught) {
-                    throw new EvalError(
-                        *state, "Expected error, but no error was caught");
+                  success = false;
+                  std::cerr << "☢️ " << attr
+                  << "\nExpected error, but no error was caught"
+                  << std::endl;
                 }
 
                 if (!myArgs.quiet && success) {
@@ -384,9 +386,10 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                 }
 
             } else {
-                throw EvalError(
-                    *state,
-                    "Missing attrset keys 'expected' or 'expectedError'");
+              success = false;
+              std::cerr << "☢️ " << attr
+              << "\nMissing attrset keys 'expected' or 'expectedError'"
+              << std::endl;
             }
 
             if (success) {
