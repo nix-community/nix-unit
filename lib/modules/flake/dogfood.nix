@@ -3,7 +3,7 @@
   test the nix-unit flake modules.
 */
 
-{ inputs, ... }:
+{ ... }:
 {
   perSystem = {
     nix-unit.inputs = {
