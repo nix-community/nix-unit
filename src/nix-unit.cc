@@ -210,10 +210,10 @@ void runDiffTool(std::string diffTool, std::string_view actual,
     writeFile(expectedPath, expected);
 
     auto res = runProgram(RunOptions{
-        .program = "/bin/sh",
+        .program = diffTool,
         .lookupPath = true,
-        .args = {"-c", diffTool + " --color always " + actualPath.string() + " " +
-                           expectedPath.string()},
+        .args = {"--color", "always", actualPath.string(),
+                 expectedPath.string()},
     });
     if (!(WIFEXITED(res.first) &&
           (WEXITSTATUS(res.first) == 0 || WEXITSTATUS(res.first) == 1))) {
