@@ -83,7 +83,7 @@ static std::string errorToString(nix::Error *error) {
 
 struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
     std::string releaseExpr;
-    Path gcRootsDir;
+    std::filesystem::path gcRootsDir;
     bool flake = false;
     bool quiet = false;
     bool fromArgs = false;
@@ -158,13 +158,16 @@ struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
             .category = category,
             .labels = {"input-path", "flake-url"},
             .handler = {[&](std::string inputPath, std::string flakeRef) {
-                PathView here(".");
+                std::filesystem::path here(".");
                 // overriden inputs are unlocked
                 lockFlags.allowUnlocked = true;
+                auto attrPath = flake::NonEmptyInputAttrPath::parse(inputPath);
+                if (!attrPath)
+                    throw UsageError("input path '%s' is empty or invalid",
+                                     inputPath);
                 lockFlags.inputOverrides.insert_or_assign(
-                    flake::parseInputAttrPath(inputPath),
-                    parseFlakeRef(nix::fetchSettings, flakeRef, absPath(here),
-                                  true));
+                    *attrPath, parseFlakeRef(nix::fetchSettings, flakeRef,
+                                             absPath(here), true));
             }},
         });
 
@@ -200,8 +203,8 @@ static Value *releaseExprTopLevelValue(EvalState &state, Bindings &autoArgs) {
 void runDiffTool(std::string diffTool, std::string_view actual,
                  std::string_view expected) {
     AutoDelete tmpDir(createTempDir(), true);
-    Path actualPath = (Path)tmpDir + "/actual.nix";
-    Path expectedPath = (Path)tmpDir + "/expected.nix";
+    auto actualPath = std::filesystem::path(tmpDir) / "actual.nix";
+    auto expectedPath = std::filesystem::path(tmpDir) / "expected.nix";
 
     writeFile(actualPath, actual);
     writeFile(expectedPath, expected);
@@ -209,8 +212,8 @@ void runDiffTool(std::string diffTool, std::string_view actual,
     auto res = runProgram(RunOptions{
         .program = "/bin/sh",
         .lookupPath = true,
-        .args = {"-c", diffTool + " --color always " + actualPath + " " +
-                           expectedPath},
+        .args = {"-c", diffTool + " --color always " + actualPath.string() + " " +
+                           expectedPath.string()},
     });
     if (!(WIFEXITED(res.first) &&
           (WEXITSTATUS(res.first) == 0 || WEXITSTATUS(res.first) == 1))) {
@@ -236,7 +239,7 @@ std::string printValueWithRepated(EvalState &state, Value &v) {
 static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
     nix::Value *vRoot = [&]() {
         if (myArgs.flake) {
-            PathView here(".");
+            std::filesystem::path here(".");
             auto [flakeRef, fragment, outputSpec] =
                 parseFlakeRefWithFragmentAndExtendedOutputsSpec(
                     nix::fetchSettings, myArgs.releaseExpr, absPath(here));
@@ -452,7 +455,7 @@ int main(int argc, char **argv) {
 
         /* FIXME: The build hook in conjunction with import-from-derivation is
          * causing "unexpected EOF" during eval */
-        settings.builders = "";
+        settings.set("builders", "");
 
         /* Prevent access to paths outside of the Nix search path and
            to the environment. */
@@ -469,7 +472,7 @@ int main(int argc, char **argv) {
         if (myArgs.releaseExpr == "")
             throw UsageError("no expression specified");
 
-        if (myArgs.gcRootsDir == "") {
+        if (myArgs.gcRootsDir.empty()) {
             printMsg(lvlError, "warning: `--gc-roots-dir' not specified");
         } else {
             myArgs.gcRootsDir = std::filesystem::absolute(myArgs.gcRootsDir);
@@ -478,8 +481,9 @@ int main(int argc, char **argv) {
         if (myArgs.showTrace) {
             loggerSettings.showTrace.assign(true);
         }
-        auto evalStore =
-            myArgs.evalStoreUrl ? openStore(*myArgs.evalStoreUrl) : openStore();
+        auto evalStore = myArgs.evalStoreUrl
+                             ? openStore(std::move(*myArgs.evalStoreUrl))
+                             : openStore();
         auto evalState =
             std::make_shared<EvalState>(myArgs.lookupPath, evalStore,
                                         nix::fetchSettings, nix::evalSettings);
