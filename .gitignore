@@ -42,6 +42,7 @@ tmp/
 /build
 # nix-build
 /result
+/result-*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
