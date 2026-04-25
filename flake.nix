@@ -69,7 +69,7 @@
           x86_64-linux = builtins.removeAttrs (self.packages.x86_64-linux // self.checks.x86_64-linux) [
             "default"
           ];
-          x86_64-darwin = builtins.removeAttrs (self.packages.x86_64-darwin // self.checks.x86_64-darwin) [
+          aarch64-darwin = builtins.removeAttrs (self.packages.aarch64-darwin // self.checks.aarch64-darwin) [
             "default"
             "treefmt"
           ];
