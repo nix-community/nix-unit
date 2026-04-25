@@ -14,5 +14,4 @@ executable('nix-unit', src,
              nlohmann_json_dep,
              threads_dep
            ],
-           install: true,
-           cpp_args: ['-std=c++2a'])
+           install: true)

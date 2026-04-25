@@ -32,7 +32,7 @@
         in
         {
           nix-unit = pkgs.callPackage ./default.nix {
-            nixComponents = pkgs.nixVersions.nixComponents_2_30;
+            nixComponents = pkgs.nixVersions.nixComponents_2_31;
           };
           default = self.packages.${system}.nix-unit;
           doc = pkgs.callPackage ./doc { inherit self; };
