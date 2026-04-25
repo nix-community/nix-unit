@@ -14,7 +14,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: NixOS/nix-installer-action@main
       - id: set-matrix
         name: Generate Nix Matrix
@@ -28,14 +28,14 @@ jobs:
     strategy:
       matrix: ${{fromJSON(needs.nix-matrix.outputs.matrix)}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: NixOS/nix-installer-action@main
       - run: nix build -L ".#${{ matrix.attr }}"
 
   nix-unit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install Nix
         uses: NixOS/nix-installer-action@main
       - name: Build shell
@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: nix-unit
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - uses: NixOS/nix-installer-action@main
     - name: Run build
       run: nix build -L .#doc
