@@ -94,6 +94,7 @@ struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
     bool checkCacheStatus = false;
     size_t nrWorkers = 1;
     size_t maxMemorySize = 4096;
+    Strings attrPaths;
 
     // usually in MixFlakeOptions
     flake::LockFlags lockFlags = {.updateLockFile = false,
@@ -117,6 +118,15 @@ struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
                 ::exit(0);
             }},
         });
+
+        addFlag({.longName = "attr",
+                 .shortName = 'A',
+                 .description = "select an attribute path as an entry point; "
+                                "may be given multiple times",
+                 .labels = {"attr-path"},
+                 .handler = {[this](std::string s) {
+                     attrPaths.push_back(std::move(s));
+                 }}});
 
         addFlag({.longName = "impure",
                  .description = "allow impure expressions",
@@ -440,7 +450,38 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
         }
     };
 
-    recurseTests(std::vector<std::string>({}), vRoot);
+    if (myArgs.attrPaths.empty()) {
+        recurseTests({}, vRoot);
+    } else {
+        for (const auto &attrPathStr : myArgs.attrPaths) {
+            // Copied from nix/nix-instantiate.cc
+            auto [v, pos] =
+                findAlongAttrPath(*state, attrPathStr, autoArgs, *vRoot);
+            state->forceValue(*v, pos);
+
+            // Kepp the requested path back as string for reporting
+            std::vector<std::string> attrPath;
+            for (const auto &sym : AttrPath::parse(*state, attrPathStr)) {
+                attrPath.emplace_back(state->symbols[sym]);
+            }
+
+            // If the entry point looks like a single test run it directly.
+            // Otherwise recurse
+            if (!attrPath.empty() && attrPath.back().rfind("test", 0) == 0) {
+                runTest(attrPath, v);
+                if (myArgs.maxFailures <= results.failures) {
+                    throw EvalError(*state, "Hit maximum failures, aborting.");
+                }
+            } else {
+                if (v->type() != nAttrs) {
+                    throw EvalError(*state, "Attribute '%s' is not an attrset",
+                                    attrPathStr.empty() ? "<root>"
+                                                        : attrPathStr);
+                }
+                recurseTests(attrPath, v);
+            }
+        }
+    }
 
     return results;
 }
