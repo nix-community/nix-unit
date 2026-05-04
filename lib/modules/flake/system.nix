@@ -119,7 +119,7 @@ in
               echo "Running tests for " ${lib.escapeShellArg system}
               nix-unit \
                 --show-trace \
-                --extra-experimental-features flakes \
+                --extra-experimental-features "flakes pipe-operators" \
                 --accept-flake-config \
                 ${lib.concatStringsSep "\\\n  " (lib.mapAttrsToList overrideArg config.nix-unit.inputs)} \
                 --flake ${self}#tests.systems.${system} \
