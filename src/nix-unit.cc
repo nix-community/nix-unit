@@ -23,6 +23,7 @@
 #include <nix/store/local-fs-store.hh>
 #include <nix/util/logging.hh>
 #include <nix/util/error.hh>
+#include <nix/util/terminal.hh>
 #include <nix/cmd/installables.hh>
 #include <nix/store/path-with-outputs.hh>
 #include <nix/cmd/installable-flake.hh>
@@ -369,18 +370,17 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
                     }
 
                     if (success && !expectedErrorMsg.empty()) {
-                        auto thrownErrorMsg = e.msg();
+                        auto thrownErrorMsg =
+                            filterANSIEscapes(e.message(), true);
 
                         auto pattern = std::regex(expectedErrorMsg);
-                        std::cmatch m;
-                        if (!std::regex_search(thrownErrorMsg.c_str(), m,
-                                               pattern)) {
+                        if (!std::regex_search(thrownErrorMsg, pattern)) {
                             success = false;
                             std::cerr << "❌ " << attr
                                       << "\nExpected error msg pattern '"
                                       << expectedErrorMsg
-                                      << "' does not match '" << thrownErrorMsg
-                                      << "' was thrown\n"
+                                      << "' does not match thrown error msg '"
+                                      << thrownErrorMsg << "'\n"
                                       << std::endl;
                         }
                     }

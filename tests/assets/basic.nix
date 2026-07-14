@@ -58,4 +58,10 @@
     expectedError.type = "ThrownError";
     expectedError.msg = "\\d+ errors";
   };
+
+  testCatchWrongMessageTrace = {
+    expr = throw "bye";
+    expectedError.type = "ThrownError";
+    expectedError.msg = "hi";
+  };
 }
