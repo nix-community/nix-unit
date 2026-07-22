@@ -540,6 +540,9 @@ int main(int argc, char **argv) {
             << results.success << "/" << results.total << " successful"
             << std::endl;
 
+        // Honour NIX_SHOW_STATS
+        evalState->maybePrintStats();
+
         if (!success) {
             throw EvalError(*evalState, "Tests failed");
         }
