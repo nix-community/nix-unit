@@ -1,5 +1,6 @@
 src = [
   'nix-unit.cc',
+  'daemon-settings.cc',
 ]
 
 

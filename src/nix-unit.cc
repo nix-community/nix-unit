@@ -36,6 +36,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "daemon-settings.hh"
+
 using namespace nix;
 using namespace nlohmann;
 
@@ -490,6 +492,11 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
 
 int main(int argc, char **argv) {
     return handleExceptions(argv[0], [&]() {
+        /* Register daemon-only settings (`trusted-users`, `allowed-users`) so
+           reading nix.conf doesn't warn about them and they can be set via
+           `--option`. Must run before initNix() reads the configuration. */
+        nix_unit::registerDaemonSettings();
+
         initNix();
         initGC();
         flakeSettings.configureEvalSettings(evalSettings);

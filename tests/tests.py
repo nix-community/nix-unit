@@ -191,6 +191,34 @@ def run_stats_check():
             raise ValueError(f"missing {check} in stats output:\n{out}")
 
 
+def run_option_check():
+    print("Testing: --option daemon settings")
+
+    test_settings = ("trusted-users", "allowed-users")
+
+    def run(extra_args: list[str]) -> str:
+        proc = subprocess.run(
+            ["nix", "run", "..", "--", *extra_args, "./assets/basic.nix"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+        )
+        return proc.stderr.decode()
+
+    # No spurious "unknown setting" warnings on a plain run.
+    out = run([])
+    for setting in test_settings:
+        check = f"unknown setting '{setting}'"
+        if check in out:
+            raise ValueError(f"unexpected warning {check}")
+
+    # The daemon-only settings are accepted via --option without warning.
+    out = run(["--option", "trusted-users", "root", "--option", "allowed-users", "*"])
+    for setting in test_settings:
+        check = f"unknown setting '{setting}'"
+        if check in out:
+            raise ValueError(f"unexpected warning {check}")
+
+
 def run_flake_checks():
     print("Testing: flake checks")
 
@@ -297,5 +325,7 @@ if __name__ == "__main__":
     )
 
     run_stats_check()
+
+    run_option_check()
 
     run_flake_checks()
