@@ -134,7 +134,8 @@ struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
                  .handler = {&impure, true}});
 
         addFlag({.longName = "gc-roots-dir",
-                 .description = "garbage collector roots directory",
+                 .description = "garbage collector roots directory; "
+                                "deprecated: unusued but kept for backwards compatibility",
                  .labels = {"path"},
                  .handler = {&gcRootsDir}});
 
@@ -512,12 +513,6 @@ int main(int argc, char **argv) {
 
         if (myArgs.releaseExpr == "")
             throw UsageError("no expression specified");
-
-        if (myArgs.gcRootsDir.empty()) {
-            printMsg(lvlError, "warning: `--gc-roots-dir' not specified");
-        } else {
-            myArgs.gcRootsDir = std::filesystem::absolute(myArgs.gcRootsDir);
-        }
 
         if (myArgs.showTrace) {
             loggerSettings.showTrace.assign(true);
