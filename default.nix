@@ -26,7 +26,7 @@ let
 in
 stdenv.mkDerivation {
   pname = "nix-unit";
-  version = "2.35.0";
+  version = "2.35.1";
   inherit src;
   buildInputs = [
     nlohmann_json
