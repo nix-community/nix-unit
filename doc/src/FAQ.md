@@ -9,6 +9,41 @@ This adds a lot of additional complexity and for now is better dealt with by usi
 colors via `DFT_COLOR=never`, give difftastic a hint for choosing better colors with `DFT_BACKGROUND=light` or see the full
 list of options via e.g. `nix run nixpkgs#difftastic -- --help`.
 
+# How do I compare derivations?
+
+Comparing derivations directly will deep-force a derivation and its attributes, making a naive test case like:
+```nix
+let
+  pkgs = import <nixpkgs> {};
+in {
+  test-hello = {
+    expr = pkgs.hello;
+    expected = pkgs.hello;
+  };
+}
+```
+output a cryptic series of lines like:
+```
+...
+evaluation warning: Use `stdenv.tests` instead. `passthru` is a `mkDerivation` detail.
+evaluation warning: Use `stdenv.tests` instead. `passthru` is a `mkDerivation` detail.
+evaluation warning: Use `stdenv.tests` instead. `passthru` is a `mkDerivation` detail.
+error: stack overflow (possible infinite recursion)
+```
+
+To work around this instead compare the derivation paths:
+```nix
+let
+  pkgs = import <nixpkgs> {};
+in {
+  test-hello = {
+    # Compare as strings
+    expr = "${pkgs.hello}";
+    expected = "${pkgs.hello}";
+  };
+}
+```
+
 ## Comparison with other tools
 This comparison matrix was originally taken from [Unit test your Nix code](https://www.tweag.io/blog/2022-09-01-unit-test-your-nix-code/) but has been adapted.
 Pythonix is excluded as it's unmaintained.
