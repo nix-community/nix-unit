@@ -134,8 +134,9 @@ struct MyArgs : MixEvalArgs, MixCommonArgs, RootArgs {
                  .handler = {&impure, true}});
 
         addFlag({.longName = "gc-roots-dir",
-                 .description = "garbage collector roots directory; "
-                                "deprecated: unusued but kept for backwards compatibility",
+                 .description =
+                     "garbage collector roots directory; "
+                     "deprecated: unusued but kept for backwards compatibility",
                  .labels = {"path"},
                  .handler = {&gcRootsDir}});
 
