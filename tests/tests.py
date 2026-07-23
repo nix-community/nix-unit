@@ -165,6 +165,32 @@ suites = {
 }
 
 
+def run_stats_check():
+    print("Testing: NIX_SHOW_STATS")
+
+    cmd = ["nix", "run", "..", "--", "./assets/basic.nix"]
+
+    def run(value: str) -> str:
+        proc = subprocess.run(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            env={**os.environ, "NIX_SHOW_STATS": value, "NIX_SHOW_STATS_PATH": "-"},
+        )
+        return proc.stderr.decode()
+
+    # Disabled: no stats
+    out = run("0")
+    if '"cpuTime"' in out:
+        raise ValueError(f"unexpected stats output with NIX_SHOW_STATS=0:\n{out}")
+
+    # Enabled: stats (check for presence of known stats strings)
+    out = run("1")
+    for check in ('"cpuTime"', '"nrThunks"'):
+        if check not in out:
+            raise ValueError(f"missing {check} in stats output:\n{out}")
+
+
 def run_flake_checks():
     print("Testing: flake checks")
 
@@ -269,5 +295,7 @@ if __name__ == "__main__":
         flake=False,
         needle="is not an attrset",
     )
+
+    run_stats_check()
 
     run_flake_checks()
