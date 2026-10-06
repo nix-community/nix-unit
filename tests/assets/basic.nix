@@ -64,4 +64,37 @@
     expectedError.type = "ThrownError";
     expectedError.msg = "hi";
   };
+
+  # Like a package in Nixpkgs, this derivation has an attribute that makes a new
+  # value on each access, so forcing it in full does not stop.
+  testDerivation =
+    let
+      drv =
+        n:
+        derivation {
+          name = "drv";
+          builder = "/bin/sh";
+          system = "x86_64-linux";
+        }
+        // {
+          next = drv (n + 1);
+        };
+    in
+    {
+      expr = drv 0;
+      expected = drv 0;
+    };
+
+  testDerivationFail = {
+    expr = derivation {
+      name = "drv";
+      builder = "/bin/sh";
+      system = "x86_64-linux";
+    };
+    expected = derivation {
+      name = "other";
+      builder = "/bin/sh";
+      system = "x86_64-linux";
+    };
+  };
 }

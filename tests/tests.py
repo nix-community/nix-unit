@@ -161,6 +161,8 @@ suites = {
         TestResult("testCatchMessage", success=True),
         TestResult("testCatchWrongMessage", fail=True),
         TestResult("testCatchWrongMessageTrace", fail=True),
+        TestResult("testDerivation", success=True),
+        TestResult("testDerivationFail", fail=True),
     ),
 }
 
