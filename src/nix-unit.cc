@@ -247,7 +247,7 @@ struct TestResults {
 
 std::string printValueWithRepated(EvalState &state, Value &v) {
     std::ostringstream out;
-    v.print(state, out, PrintOptions{.force = true});
+    v.print(state, out, PrintOptions{.force = true, .derivationPaths = true});
     return out.str();
 }
 
@@ -305,8 +305,6 @@ static TestResults runTests(ref<EvalState> state, Bindings &autoArgs) {
             bool success = false;
 
             if (expected) {
-                state->forceValueDeep(*expr->value);
-                state->forceValueDeep(*expected->value);
                 success = state->eqValues(*expr->value, *expected->value, noPos,
                                           "while comparing (expr == expected)");
 
